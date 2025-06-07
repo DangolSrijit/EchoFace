@@ -1,0 +1,60 @@
+from rest_framework import serializers
+from .models import *
+from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('student_id', 'email', 'name')
+
+# class RegisterSerializer(serializers.ModelSerializer):
+#     password1 = serializers.CharField(write_only=True, required=True)
+#     password2 = serializers.CharField(write_only=True, required=True)
+
+#     class Meta:
+#         model = User
+#         fields = ('student_id', 'email', 'name', 'password1', 'password2')
+#         extra_kwargs = {
+#             'password1': {'write_only': True},
+#             'password2': {'write_only': True}
+#         }
+    
+#     def validate(self, attrs):
+#         if attrs['password1'] != attrs['password2']:
+#             raise serializers.ValidationError("Passwords do not match")
+        
+#         email = attrs.get("email", "")
+#         if User.objects.filter(email=email).exists():
+#             raise serializers.ValidationError({"email": "Email is already in use"})
+
+#         return attrs
+
+#     def create(self, validated_data):
+#         # Remove password2 (not needed for user creation)
+#         password = validated_data.pop('password1')
+#         validated_data.pop('password2')
+
+#         # Create user and hash password
+#         user = User(**validated_data)
+#         user.set_password(password)
+#         user.save()
+#         return user
+#         # return User.objects.create_user(**validated_data)
+
+class RegisterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("student_id","email","name", "password")
+        extra_kwargs = {"password": {"write_only": True}}
+
+    def validate(self, attrs):
+        email = attrs.get("email", "")
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"email": "Email is already in use"})
+
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)

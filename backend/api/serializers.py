@@ -9,6 +9,29 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('student_id', 'email', 'name')
 
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if not email or not password:
+            raise serializers.ValidationError("Email and password are required")
+
+        user = authenticate(email=email, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
+        
+        if not user.is_active:
+            raise serializers.ValidationError("User account is disabled")
+
+        attrs['user'] = user
+        return attrs
+
 # class RegisterSerializer(serializers.ModelSerializer):
 #     password1 = serializers.CharField(write_only=True, required=True)
 #     password2 = serializers.CharField(write_only=True, required=True)

@@ -4,11 +4,15 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .serializers import * # Make sure this matches your serializer name
+from .serializers import (
+    LoginSerializer, 
+    RegisterSerializer
+) # Make sure this matches your serializer name
 from rest_framework_simplejwt.tokens import RefreshToken
 # from .tokens import get_tokens_for_user  # You need to define this (see below)
 
 
+# Create your views here.
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -53,4 +57,22 @@ def signup(request):
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Create your views here.
+
+@api_view(["POST"]) 
+@permission_classes([AllowAny])
+def logout_view(request):
+    try:
+        refresh_token = request.data.get("refresh_token")
+        if not refresh_token:
+            return Response(
+                {"msg": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+
+        return Response(
+            {"msg": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT
+        )
+    except Exception :
+        return Response({"msg": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)

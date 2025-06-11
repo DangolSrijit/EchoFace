@@ -43,9 +43,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 'api.apps.ApiConfig',  # Ensure your API app is included
     'corsheaders',  # For handling CORS
     'rest_framework',  # Django REST Framework for building APIs
     'api', # Your API application
+    'rest_framework_simplejwt',  # JWT authentication
+    'rest_framework_simplejwt.token_blacklist',  # For token blacklisting
+    
 ]
 
 MIDDLEWARE = [

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './register.css';
-import aiLogo from '../img/logo.png';
+import LoginLogo from '../img/login_logo.png';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 
@@ -63,7 +63,7 @@ const Register = () => {
             <div className="register__container">
                 <div className="register-form">
                     <div className="register-form__logo-container">
-                        <img src={aiLogo} className="register-form__logo" alt="AI Logo" />
+                        <img src={LoginLogo } className="register-form__logo" alt="AI Logo" />
                     </div>
                     <p className="register-form__second-text">Register to access your attendance records!</p>
                     <div>

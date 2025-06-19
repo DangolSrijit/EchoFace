@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Login.css';
-import aiLogo from '../img/logo.png';
+import LoginLogo from '../img/login_logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from "axios";
 
@@ -52,7 +52,7 @@ const Login = () => {
             <div className="login__container" id="login__container">
                 <div className="login-form">
                     <div className="login-form__logo-container">
-                        <img src={aiLogo} className="login-form__logo" alt="AI Logo" />
+                        <img src={LoginLogo} className="login-form__logo" alt="AI Logo" />
                     </div>
                     <p className="login-form__heading-text">Login</p>
                     <p className="login-form__second-text">Your gateway to smart attendance management!</p>

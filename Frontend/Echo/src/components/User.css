@@ -1,0 +1,109 @@
+/* 
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .container {
+    flex-direction: row;
+  }
+}
+
+.left-section,
+.right-section {
+  flex: 1;
+  padding: 40px;
+}
+
+.left-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo {
+  height: 40px;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+p {
+  font-size: 16px;
+  margin-bottom: 24px;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.new-meeting {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.join-box {
+  display: flex;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.join-box input {
+  flex: 1;
+  border: none;
+  padding: 10px;
+  outline: none;
+}
+
+.join-button {
+  background: none;
+  border: none;
+  color: #1a73e8;
+  font-weight: bold;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.learn-more {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.right-section {
+  text-align: center;
+}
+
+.image-circle {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 24px;
+  background: #f1f3f4;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-circle img {
+  width: 120px;
+}
+
+.right-section h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+} */

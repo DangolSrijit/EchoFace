@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import './Login.css';
-// import aiLogo from './img/ai_logo.png';
-// import { Link } from 'react-router-dom';
-// import { Link, useNavigate } from 'react-router-dom';
-// import axios from "axios";
+import aiLogo from '../img/logo.png';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from "axios";
 
 const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);

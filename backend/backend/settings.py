@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'api', # Your API application
     'rest_framework_simplejwt',  # JWT authentication
     'rest_framework_simplejwt.token_blacklist',  # For token blacklisting
+    'channels',  # For WebSocket support
     
 ]
 
@@ -88,6 +89,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+
+# ASGI application for WebSocket support
+ASGI_APPLICATION = 'backend.asgi.application'
+
+# Channels settings
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database

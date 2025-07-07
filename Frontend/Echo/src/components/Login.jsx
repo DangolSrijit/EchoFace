@@ -28,7 +28,7 @@ const Login = () => {
         formData.append("password", password);
         try {
             const response = await axios.post(
-              "http://localhost:5000/login/",
+              "http://localhost:8000/login/",
               formData
             );
             // console.log(response);
@@ -89,7 +89,7 @@ const Login = () => {
                             </div>
                            <input type="submit" value="Login" className="login-submit" />
                         </form>
-                        <Link to='/register'>
+                        <Link to='/signup'>
                             <button className="register-button">
                                 Register
                             </button>

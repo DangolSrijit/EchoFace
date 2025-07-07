@@ -67,20 +67,23 @@ class LoginSerializer(serializers.Serializer):
 #         # return User.objects.create_user(**validated_data)
 
 class RegisterSerializer(serializers.ModelSerializer):
+    student_id = serializers.CharField(required=False, allow_null=True)
+
     class Meta:
         model = User
-        fields = ("student_id","email","name", "password")
-        extra_kwargs = {"password": {"write_only": True}}
+        fields = ("student_id", "email", "name", "password")
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "student_id": {"required": False, "allow_null": True},
+        }
 
     def validate(self, attrs):
-        email = attrs.get("email", "")
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError({"email": "Email is already in use"})
-
-        return super().validate(attrs)
+        # email validation ...
+        return attrs
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
+
     
 
     

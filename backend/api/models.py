@@ -1,15 +1,16 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from datetime import datetime
 
 # Create your models here.
 
 class UserManager(BaseUserManager):
-    def create_user(self, student_id, email, name, password=None):
+    def create_user(self, email, name, password=None, student_id=None):
         if not email:
             raise ValueError("Users must have an email address")
         if not student_id:
-            raise ValueError("Users must have a student ID")
+            student_id = f"STD{int(datetime.now().timestamp())}"
         
         email = self.normalize_email(email)
         user = self.model(
@@ -37,7 +38,7 @@ class UserManager(BaseUserManager):
     
 
 class User(AbstractBaseUser, PermissionsMixin):
-    student_id= models.CharField(max_length=20, unique=True, null=False, blank=False)
+    student_id= models.CharField(max_length=20, unique=True, null=True, blank=False)
     email= models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     # last_name = models.CharField(max_length=100)

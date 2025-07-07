@@ -29,20 +29,21 @@ const Register = () => {
         }
 
         const formData = {
-            username: username,
+            name: username,
             email: email,
             password: password
         };
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/register",
+                "http://localhost:8000/signup/",
                 formData
             );
             console.log(response);
-            if (response.status === 200) {
+            if (response.status === 201) {
                 alert("Registration successful!");
                 // Redirect to login or dashboard, etc.
+                window.location.href = '/login'; // Redirect to login page
             } else {
                 alert("Registration failed. Please try again.");
             }

@@ -1,8 +1,24 @@
 import React from "react";
 import "./User.css";
+import { Link } from 'react-router-dom';
+import logo from '../img/logo.png';
 
-function GoogleMeetPage() {
+function User() {
   return (
+    <div>
+          <header>    
+              <div className="container">
+                  <a href="#" className="logo">
+                      <img src={logo} alt="AI Attendance Logo" />
+                  </a>
+                  <nav>
+                      <ul>
+                          <li><a href="#contact">Contact</a></li>
+                          <li> <Link to="/main" className="login-btn">Logout</Link></li>
+                      </ul>
+                  </nav>
+              </div>
+          </header>
     <div className="meet-container">
       <div className="meet-left">
         <img src="https://ssl.gstatic.com/meet/logo/v2/meet-logo.svg" alt="Google Meet" className="meet-logo" />
@@ -15,7 +31,7 @@ function GoogleMeetPage() {
             <button className="meet-join-btn">Join</button>
           </div>
         </div>
-        <a href="#" className="meet-link">Learn more about Google Meet</a>
+        <a href="#" className="meet-link">Learn more about EchoFace</a>
       </div>
 
       <div className="meet-right">
@@ -26,7 +42,8 @@ function GoogleMeetPage() {
         <p>Click <strong>New meeting</strong> to get a link you can send to people you want to meet with</p>
       </div>
     </div>
+    </div>
   );
 }
 
-export default GoogleMeetPage;
+export default User;

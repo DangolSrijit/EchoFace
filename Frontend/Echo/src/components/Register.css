@@ -30,9 +30,14 @@
 
 .register-form {
     padding: 3rem 4rem;
-    box-shadow: 0 4px 25px rgba(14, 36, 49, 0.15);
+    box-shadow: 0px 0px 18px 0 #0000002c;
+    transition: .3s ease box-shadow;
     border-radius: 0 6px 6px 0;
     line-height: 0.8;
+}
+
+.register-form:hover {
+    box-shadow: 0px 0px 5px 0 #0000002c;
 }
 
 .register-form__logo-container, .register-form > p {

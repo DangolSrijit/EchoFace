@@ -10,10 +10,10 @@ import User from './User';
 function App() {
   return (
       <Routes>
-        <Route path="/" element={<MainApp />} />
+        <Route path="/main" element={<MainApp />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/user" element={<User />} />
+        <Route path="/" element={<User />} />
       </Routes>
   );
 }

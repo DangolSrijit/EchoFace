@@ -31,7 +31,7 @@ const MainApp = () => {
     <section id="about" className="about">
         <div className="container">
             <h2>About Our System</h2>
-            <p>Our EchoFace System leverages advanced facial recognition technology to provide a seamless and accurate face tracking solution. Designed for ease of use and maximum efficiency, it simplifies face detection voice detection and attendance management for educational institutions, businesses, and organizations.</p>
+            <p>Our EchoFace System leverages advanced facial recognition technology to provide a seamless and accurate face tracking solution. Designed for ease of use and maximum efficiency, it simplifies face detection, voice detection and attendance management for educational institutions, businesses, and organizations.</p>
         </div>
     </section>
 

@@ -11,6 +11,7 @@ const Login = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
+    const navigate = useNavigate();
     const togglePasswordVisibility = () => {
         setPasswordVisible(!passwordVisible);
     };
@@ -23,24 +24,43 @@ const Login = () => {
         e.preventDefault();
         // Handle form submission
         console.log('Login Submitted:', { emailUsername, password });
-        const formData = new FormData();
-        formData.append("username", emailUsername);
-        formData.append("password", password);
+        const formData = {
+            email: emailUsername,
+            password: password
+            };
+
         try {
             const response = await axios.post(
-              "http://localhost:5000/login/",
-              formData
+              "http://localhost:8000/login/",
+              formData,
+              {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
             );
             // console.log(response);
             console.log(response);
             if (response.status === 200) {
-                // Navigate to admin page on successful login
-                navigate('/admin');
-            }
+                const { tokens, user } = response.data;
 
-        }catch(error){
+                // Save tokens to localStorage
+                localStorage.setItem("access_token", tokens.access);
+                localStorage.setItem("refresh_token", tokens.refresh);
+
+                // Optionally save user info
+                localStorage.setItem("user", JSON.stringify(user));
+
+                // Redirect to dashboard
+                navigate("/dashboard");
+            } else {
+                // handle error (optional)
+                alert("Login failed");
+            }
+            } catch (error) {
             console.error("Error Logging in", error);
-        }
+            alert("Invalid credentials");
+            }
         // Reset form fields
         setEmailUsername('');
         setPassword('');
@@ -65,7 +85,7 @@ const Login = () => {
                                     name="email_username" 
                                     value={emailUsername}
                                     onChange={(e) => setEmailUsername(e.target.value)}
-                                    placeholder="Email or Username*" 
+                                    placeholder="Email *" 
                                     className="email-input" 
                                     required 
                                 />
@@ -89,7 +109,7 @@ const Login = () => {
                             </div>
                            <input type="submit" value="Login" className="login-submit" />
                         </form>
-                        <Link to='/register'>
+                        <Link to='/signup'>
                             <button className="register-button">
                                 Register
                             </button>

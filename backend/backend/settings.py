@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'api', # Your API application
     'rest_framework_simplejwt',  # JWT authentication
     'rest_framework_simplejwt.token_blacklist',  # For token blacklisting
+    'channels',  # For WebSocket support
     
 ]
 
@@ -64,7 +65,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-
+    "http://localhost:5173",
+    "http://localhost:5174",
 ]
 
 AUTH_USER_MODEL = 'api.User'  # Custom user model
@@ -88,6 +90,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+
+# ASGI application for WebSocket support
+ASGI_APPLICATION = 'backend.asgi.application'
+
+# Channels settings
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database

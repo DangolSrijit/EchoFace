@@ -1,109 +1,107 @@
-/* 
-.container {
+.meet-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Montserrat', sans-serif;
+  background: #fff;
+  color: #333;
 }
 
 @media (min-width: 768px) {
-  .container {
+  .meet-container {
     flex-direction: row;
   }
 }
 
-.left-section,
-.right-section {
+.meet-left, .meet-right {
   flex: 1;
-  padding: 40px;
+  padding: 2rem;
 }
 
-.left-section {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.logo {
+.meet-logo {
   height: 40px;
   margin-bottom: 20px;
 }
 
-h1 {
+.meet-title {
   font-size: 32px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-p {
+.meet-text {
   font-size: 16px;
   margin-bottom: 24px;
 }
 
-.buttons {
+.meet-buttons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  max-width: 400px;
 }
 
-.new-meeting {
+.meet-new-btn {
   background-color: #1a73e8;
   color: white;
+  padding: 12px;
   border: none;
-  padding: 10px 20px;
-  font-weight: bold;
+  font-size: 16px;
   border-radius: 4px;
   cursor: pointer;
 }
 
-.join-box {
+.meet-join-box {
   display: flex;
   border: 1px solid #ccc;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.join-box input {
+.meet-join-box input {
   flex: 1;
-  border: none;
   padding: 10px;
-  outline: none;
+  border: none;
+  font-size: 14px;
 }
 
-.join-button {
+.meet-join-btn {
   background: none;
-  border: none;
   color: #1a73e8;
+  border: none;
+  padding: 0 16px;
   font-weight: bold;
-  padding: 10px 16px;
   cursor: pointer;
 }
 
-.learn-more {
+.meet-link {
   margin-top: 16px;
   font-size: 14px;
   color: #1a73e8;
   text-decoration: none;
 }
 
-.right-section {
-  text-align: center;
-}
-
-.image-circle {
+.meet-circle {
   width: 200px;
   height: 200px;
-  margin: 0 auto 24px;
   background: #f1f3f4;
   border-radius: 50%;
+  margin: 0 auto 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.image-circle img {
+.meet-circle img {
   width: 120px;
 }
 
-.right-section h2 {
+.meet-right h2 {
   font-size: 20px;
-  margin-bottom: 8px;
-} */
+  margin-bottom: 10px;
+}
+
+.meet-right p {
+  font-size: 14px;
+  color: #555;
+}

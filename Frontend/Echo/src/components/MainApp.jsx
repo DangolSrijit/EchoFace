@@ -51,14 +51,12 @@ const MainApp = () => {
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" style={aboutSectionStyle}>
-        <div className="container" style={{ maxWidth: 900, margin: '0 auto', padding: '4rem 1rem' }}>
-          <h2 style={{ ...sectionTitleStyle, textAlign: 'left' }}>About Our System</h2>
-          <p style={{ ...sectionTextStyle, textAlign: 'left', maxWidth: '650px' }}>
-            Our EchoFace System leverages advanced facial recognition technology to provide a seamless and accurate face tracking solution.
-            Designed for ease of use and maximum efficiency, it simplifies face detection, voice detection, and attendance management for educational institutions, businesses, and organizations.
-          </p>
+
+    <section id="about" className="about">
+        <div className="container">
+            <h2>About Our System</h2>
+            <p>Our EchoFace System leverages advanced facial recognition technology to provide a seamless and accurate face tracking solution. Designed for ease of use and maximum efficiency, it simplifies face detection, voice detection and attendance management for educational institutions, businesses, and organizations.</p>
+
         </div>
       </section>
 

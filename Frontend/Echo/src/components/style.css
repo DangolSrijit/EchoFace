@@ -20,7 +20,6 @@ body {
 header {
     background: #333;
     color: #fff;
-    border-bottom: #77aaff 3px solid;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -115,14 +114,20 @@ header nav ul li a.login-btn:hover {
     display: flex;
     justify-content: space-around;
     margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .features .feature {
     flex: 1;
     padding: 20px;
-    background: #f4f4f4;
     border-radius: 5px;
-    margin: 0 10px;
+    margin: 0 20px;
+    box-shadow: 0px 0px 18px 0 #0000002c;
+    transition: .3s ease box-shadow;
+}
+
+.features .feature:hover {
+    box-shadow: 0px 0px 5px 0 #0000002c;
 }
 
 .features .feature h3 {

@@ -130,9 +130,21 @@ export default function VideoCall() {
     });
 
     return () => {
+      // destroy peers
       peersRef.current.forEach(({ peer }) => peer.destroy());
+      peersRef.current = [];
+
+      // close socket
       if (socketRef.current) socketRef.current.close();
-      if (stream) stream.getTracks().forEach(track => track.stop());
+
+      // stop all tracks and clear video element
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+
+      if (userVideo.current) {
+        userVideo.current.srcObject = null;
+      }
     };
   }, [roomName, selfId]);  // added selfId to deps
 
@@ -301,16 +313,70 @@ export default function VideoCall() {
     }
   };
 
-  const endCall = () => {
-    // Close all peers
-    peersRef.current.forEach(({ peer }) => peer.destroy());
-    peersRef.current = [];
-    setPeers([]);
-    // Close socket and redirect to homepage or landing page
-    if (socketRef.current) socketRef.current.close();
-    if (stream) stream.getTracks().forEach(track => track.stop());
-    navigate('/dashboard'); 
-  };
+  // const streamRef = useRef(null);
+
+  // useEffect(() => {
+  //   streamRef.current = stream;
+  // }, [stream]);
+
+  // const endCall = () => {
+  //   peersRef.current.forEach(({ peer }) => peer.destroy());
+  //   peersRef.current = [];
+  //   setPeers([]);
+
+  //   if (socketRef.current) socketRef.current.close();
+
+  //   if (streamRef.current) {
+  //     streamRef.current.getTracks().forEach(track => track.stop());
+  //   }
+
+  //   if (userVideo.current) {
+  //     userVideo.current.srcObject = null;
+  //   }
+
+  //   navigate('/user');
+  // };
+  const streamRef = useRef(null);
+
+useEffect(() => {
+  streamRef.current = stream;
+}, [stream]);
+
+const endCall = () => {
+  // Destroy all peers
+  peersRef.current.forEach(({ peer }) => peer.destroy());
+  peersRef.current = [];
+  setPeers([]);
+
+  // Close websocket connection
+  if (socketRef.current) {
+    socketRef.current.close();
+  }
+
+  // Stop all tracks from current stream (webcam or screen share)
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach(track => {
+      try {
+        track.stop();
+      } catch (e) {
+        console.warn('Error stopping track:', e);
+      }
+    });
+  }
+
+  // Clear the video element srcObject (to release hardware)
+  if (userVideo.current) {
+    userVideo.current.srcObject = null;
+  }
+
+  // Reset stream state to null (optional, forces rerender)
+  setStream(null);
+
+  // Redirect to user page
+  navigate('/user');
+};
+
+
 
   const isAdmin = currentUser === adminUsername;
 

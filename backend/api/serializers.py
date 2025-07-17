@@ -31,6 +31,40 @@ class LoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+    
+
+class RegisterSerializer(serializers.ModelSerializer):
+    student_id = serializers.CharField(required=False, allow_null=True)
+    role = serializers.CharField(required=False)  # add role here
+
+    class Meta:
+        model = User
+        fields = ("student_id", "email", "name", "password", "role")
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "student_id": {"required": False, "allow_null": True},
+            "role": {"required": False}
+        }
+
+    def create(self, validated_data):
+        role = validated_data.pop('role', 'participant')
+        password = validated_data.pop('password')
+
+        user = User(**validated_data)
+        user.set_password(password)
+
+        # Set is_staff or other flags based on role
+        if role == 'admin':
+            user.is_staff = True
+            user.is_superuser = True  # optionally, if admin has superuser rights
+
+        else:
+            user.is_staff = False
+            user.is_superuser = False
+
+        user.save()
+        return user
+
 
 # class RegisterSerializer(serializers.ModelSerializer):
 #     password1 = serializers.CharField(write_only=True, required=True)
@@ -68,25 +102,35 @@ class LoginSerializer(serializers.Serializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     student_id = serializers.CharField(required=False, allow_null=True)
+    role = serializers.CharField(required=False, default='participant')
 
     class Meta:
         model = User
-        fields = ("student_id", "email", "name", "password")
+        fields = ("student_id", "email", "name", "password", "role")
         extra_kwargs = {
             "password": {"write_only": True},
             "student_id": {"required": False, "allow_null": True},
+            "role": {"required": False}
         }
 
-    def validate(self, attrs):
-        # email validation ...
-        return attrs
-
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        role = validated_data.pop('role', 'participant')
+        password = validated_data.pop('password')
 
-    
+        user = User(**validated_data)
+        user.set_password(password)
 
-    
+        if role == 'admin':
+            user.is_staff = True
+            user.is_superuser = True  # if you want admins to have superuser rights
+        else:
+            user.is_staff = False
+            user.is_superuser = False
+
+        user.save()
+        return user
+
+
 class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attendance

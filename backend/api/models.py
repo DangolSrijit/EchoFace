@@ -6,7 +6,7 @@ from datetime import datetime
 # Create your models here.
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, name, password=None, student_id=None):
+    def create_user(self, email, name, password=None, student_id=None, role = 'participant'):
         if not email:
             raise ValueError("Users must have an email address")
         if not student_id:
@@ -16,7 +16,8 @@ class UserManager(BaseUserManager):
         user = self.model(
             student_id=student_id,
             email=email,
-            name=name
+            name=name,
+            role = role
         )
         
         user.set_password(password)
@@ -28,7 +29,8 @@ class UserManager(BaseUserManager):
             student_id=student_id,
             email=email,
             name=name,
-            password=password
+            password=password,
+            role='admin'  # Set role to admin for superuser
         )
         user.is_staff = True
         # user.is_active = True
@@ -38,9 +40,16 @@ class UserManager(BaseUserManager):
     
 
 class User(AbstractBaseUser, PermissionsMixin):
+
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('participant', 'Participant'),
+    )
     student_id= models.CharField(max_length=20, unique=True, null=True, blank=False)
     email= models.EmailField(unique=True)
     name = models.CharField(max_length=100)
+    role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='participant' )
+
     # last_name = models.CharField(max_length=100)
     created_at= models.DateTimeField(auto_now_add=True)
     updated_at= models.DateTimeField(auto_now=True)

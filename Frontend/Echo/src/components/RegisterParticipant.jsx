@@ -290,7 +290,7 @@
 
 
 import React, { useState } from 'react';
-import './register.css';
+import './RegisterParticipant.css';
 import LoginLogo from '../img/login_logo.png';
 import { Link } from 'react-router-dom';
 import axios from "axios";

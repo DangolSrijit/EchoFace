@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'; // ✅ remove BrowserRouter/Ro
 import './style.css';
 
 import Login from './Login';
-import Register from './Register';
+import RegisterAdmin from './RegisterAdmin';
 import MainApp from './MainApp';
 import User from './User';
 import Dashboard from './Dashboard';
@@ -11,6 +11,8 @@ import PrivateRoute from './PrivateRoute';
 import SelectPurpose from './SelectPurpose';
 import PreCallSettings from './PreCallSettings'; 
 import MainAfterCall from './MainAfterCall';
+import AdminPage from './AdminPage';
+
 
 function App() {
   return (
@@ -18,7 +20,7 @@ function App() {
       {/* Public routes */}
       <Route path="/" element={<MainApp />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Register />} />
+      <Route path="/signup" element={<RegisterAdmin />} />
       <Route path="/user" element={<User />} />
 
       {/* Protected routes */}
@@ -59,6 +61,15 @@ function App() {
         path="/main-after-call" 
         element={
           <MainAfterCall />
+        } 
+      />
+      <Route 
+        path="/adminpage" 
+        element={
+          // <PrivateRoute>
+          //   <AdminPage />
+          // </PrivateRoute>
+          <AdminPage />
         } 
       />
 

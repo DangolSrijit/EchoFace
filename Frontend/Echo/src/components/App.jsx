@@ -11,6 +11,8 @@ import PrivateRoute from './PrivateRoute';
 import SelectPurpose from './SelectPurpose';
 import PreCallSettings from './PreCallSettings'; 
 import MainAfterCall from './MainAfterCall';
+import AdminPage from './AdminPage';
+
 
 function App() {
   return (
@@ -59,6 +61,15 @@ function App() {
         path="/main-after-call" 
         element={
           <MainAfterCall />
+        } 
+      />
+      <Route 
+        path="/adminpage" 
+        element={
+          // <PrivateRoute>
+          //   <AdminPage />
+          // </PrivateRoute>
+          <AdminPage />
         } 
       />
 

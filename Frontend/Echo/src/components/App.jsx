@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'; // ✅ remove BrowserRouter/Ro
 import './style.css';
 
 import Login from './Login';
-import RegisterAdmin from './RegisterAdmin';
+import Register from './Register';
 import MainApp from './MainApp';
 import User from './User';
 import Dashboard from './Dashboard';
@@ -20,7 +20,7 @@ function App() {
       {/* Public routes */}
       <Route path="/" element={<MainApp />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<RegisterAdmin />} />
+      <Route path="/signup" element={<Register />} />
       <Route path="/user" element={<User />} />
 
       {/* Protected routes */}

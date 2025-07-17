@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './RegisterAdmin.css';
+import './Register.css';
 import LoginLogo from '../img/login_logo.png';
 import { Link } from 'react-router-dom';
 import axios from "axios";

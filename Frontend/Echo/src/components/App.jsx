@@ -2,9 +2,11 @@ import { Routes, Route } from 'react-router-dom'; // ✅ remove BrowserRouter/Ro
 import './style.css';
 
 import Login from './Login';
-import RegisterParticipant from './RegisterParticipant';
+import RegisterParticipants from './RegisterParticipants';
+import Register from './Register';
 import MainApp from './MainApp';
 import User from './User';
+import Admin from './AdminPage';
 import Dashboard from './Dashboard';
 import VideoCall from './videocall';
 import PrivateRoute from './PrivateRoute';
@@ -18,7 +20,9 @@ function App() {
       {/* Public routes */}
       <Route path="/" element={<MainApp />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<RegisterParticipant />} />
+      <Route path="/signup" element={<Register />} />
+      <Route path="/signupparticipants" element={<RegisterParticipants />} />
+      <Route path="/signup" element={<Register />} />
       <Route path="/user" element={<User />} />
 
       {/* Protected routes */}
@@ -27,6 +31,14 @@ function App() {
         element={
           <PrivateRoute>
             <Dashboard />
+          </PrivateRoute>
+        } 
+      />
+      <Route 
+        path="/admin" 
+        element={
+          <PrivateRoute>
+            <Admin />
           </PrivateRoute>
         } 
       />

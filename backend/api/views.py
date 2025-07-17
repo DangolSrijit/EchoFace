@@ -31,14 +31,19 @@ def login(request):
         tokens = get_tokens_for_user(user)
 
         return Response(
-            {"tokens": tokens, 
-             "msg": "User login success",
-             "user": {
-                "student_id": user.student_id,
-                "email": user.email,
-                "name": user.name
+            {
+                "tokens": tokens,
+                "msg": "User login success",
+                "user": {
+                    "student_id": user.student_id,
+                    "email": user.email,
+                    "name": user.name,
+                    "role": "admin" if user.is_staff else "participant"
                 }
-            }, status=status.HTTP_200_OK,)
+            },
+            status=status.HTTP_200_OK
+        )
+
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -290,10 +290,12 @@
 
 
 import React, { useState } from 'react';
-import './RegisterParticipant.css';
+import './RegisterParticipants.css';
 import LoginLogo from '../img/login_logo.png';
 import { Link } from 'react-router-dom';
 import axios from "axios";
+import { Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
     const [username, setUsername] = useState('');
@@ -303,6 +305,8 @@ const Register = () => {
     const [nicImage, setNicImage] = useState(null);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+    const [role, setRole] = useState('participant'); // Default role
+    const navigate = useNavigate();
 
     const togglePasswordVisibility = () => {
         setPasswordVisible(!passwordVisible);
@@ -375,8 +379,30 @@ const Register = () => {
                     <div className="register-form__logo-container">
                         <img src={LoginLogo} className="register-form__logo" alt="AI Logo" />
                     </div>
-                    <p className="register-form__second-text">Register to access your attendance records!</p>
+                    <p className="register-form__second-text">Register to access records and stay updated on key info.</p>
                     <form method="post" onSubmit={handleSubmit} className="register__actual-form" encType="multipart/form-data">
+
+                        <div className="register-role-toggle">
+                            <button
+                            type="button"
+                            className={`register-role-button ${role === 'admin' ? 'active' : ''}`}
+                            onClick={() => {setRole('admin');
+                                navigate('/signup');
+                            } }
+                            >
+                            Register as Admin
+                            </button>
+                            <button
+                            type="button"
+                            className={`register-role-button ${role === 'participant' ? 'active' : ''}`}
+                            onClick={() => {
+                                setRole('participant');
+                                
+                                }}
+                            >
+                            Register as Participant
+                            </button>
+                        </div>
                         <div className="register-form__inputs">
                             <input 
                                 type="text"
@@ -444,7 +470,7 @@ const Register = () => {
                         <input type="submit" value="Register" className="register-submit" />
                     </form>
                     <p className="register-form__bottom-text">
-                        Register to access your attendance records and enable biometric verification for secure access.
+                        Register to access your records and stay informed about all your important updates and opportunities.
                     </p>
                     <p className="register-form__login-link">
                         Already have an account? <Link to="/login">Login</Link>

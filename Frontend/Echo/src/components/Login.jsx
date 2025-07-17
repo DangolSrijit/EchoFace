@@ -20,52 +20,104 @@ const Login = () => {
         setConfirmPasswordVisible(!confirmPasswordVisible);
     };
 
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     // Handle form submission
+    //     console.log('Login Submitted:', { emailUsername, password });
+    //     const formData = {
+    //         email: emailUsername,
+    //         password: password
+    //         };
+
+    //     try {
+    //         const response = await axios.post(
+    //           "http://localhost:8000/login/",
+    //           formData,
+    //           {
+    //             headers: {
+    //                 'Content-Type': 'application/json'
+    //             }
+    //         }
+    //         );
+    //         // console.log(response);
+    //         console.log(response);
+    //         if (response.status === 200) {
+    //             const { tokens, user } = response.data;
+
+    //             // Save tokens to localStorage
+    //             localStorage.setItem("access_token", tokens.access);
+    //             localStorage.setItem("refresh_token", tokens.refresh);
+
+    //             // Optionally save user info
+    //             localStorage.setItem("user", JSON.stringify(user));
+
+    //             // Redirect to dashboard
+    //             navigate("/user");
+    //         } else {
+    //             // handle error (optional)
+    //             alert("Login failed");
+    //         }
+    //         } catch (error) {
+    //         console.error("Error Logging in", error);
+    //         alert("Invalid credentials");
+    //         }
+    //     // Reset form fields
+    //     setEmailUsername('');
+    //     setPassword('');
+    //     setConfirmPassword('');
+    // };
+
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        // Handle form submission
-        console.log('Login Submitted:', { emailUsername, password });
-        const formData = {
-            email: emailUsername,
-            password: password
+            e.preventDefault();
+            console.log('Login Submitted:', { emailUsername, password });
+
+            const formData = {
+                email: emailUsername,
+                password: password
             };
 
-        try {
-            const response = await axios.post(
-              "http://localhost:8000/login/",
-              formData,
-              {
-                headers: {
-                    'Content-Type': 'application/json'
+            try {
+                const response = await axios.post(
+                    "http://localhost:8000/login/",
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (response.status === 200) {
+                    const { tokens, user } = response.data;
+
+                    // Save tokens and user info to localStorage
+                    localStorage.setItem("access_token", tokens.access);
+                    localStorage.setItem("refresh_token", tokens.refresh);
+                    localStorage.setItem("user", JSON.stringify(user));
+
+                    // Redirect based on user role
+                    if (user.role === 'admin') {
+                        navigate("/admin");
+                    } else if (user.role === 'participant') {
+                        navigate("/user");
+                    } else {
+                        // fallback
+                        alert("Unknown role. Please contact support.");
+                    }
+                } else {
+                    alert("Login failed");
                 }
-            }
-            );
-            // console.log(response);
-            console.log(response);
-            if (response.status === 200) {
-                const { tokens, user } = response.data;
-
-                // Save tokens to localStorage
-                localStorage.setItem("access_token", tokens.access);
-                localStorage.setItem("refresh_token", tokens.refresh);
-
-                // Optionally save user info
-                localStorage.setItem("user", JSON.stringify(user));
-
-                // Redirect to dashboard
-                navigate("/user");
-            } else {
-                // handle error (optional)
-                alert("Login failed");
-            }
             } catch (error) {
-            console.error("Error Logging in", error);
-            alert("Invalid credentials");
+                console.error("Error Logging in", error);
+                alert("Invalid credentials");
             }
-        // Reset form fields
-        setEmailUsername('');
-        setPassword('');
-        setConfirmPassword('');
-    };
+
+            // Reset form fields
+            setEmailUsername('');
+            setPassword('');
+            setConfirmPassword('');
+        };
+
 
     return (
         <div className="login" id="login" style={{ opacity: 1 }}>
@@ -75,7 +127,7 @@ const Login = () => {
                         <img src={LoginLogo} className="login-form__logo" alt="AI Logo" />
                     </div>
                     <p className="login-form__heading-text">Login</p>
-                    <p className="login-form__second-text">Your gateway to smart attendance management!</p>
+                    <p className="login-form__second-text">Register to access records and stay updated on key info.</p>
 
                     <div>
                         <form onSubmit={handleSubmit} className="login__actual-form">

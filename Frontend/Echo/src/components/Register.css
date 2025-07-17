@@ -25,7 +25,7 @@
     display: grid;
     grid-template-columns: 100%;
     position: relative;
-    margin: 0 auto;
+    margin: 0 auto; 
 }
 
 .register-form {
@@ -71,6 +71,23 @@
     outline: none;
     border-bottom: 1px solid #ccc;
 }
+.register-submitFace {
+     width: 100%;
+    background-color: rgb(41, 50, 60);
+    color: white;
+    border: 0;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    padding: 0.2rem 0;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: 0.5s all ease;
+}
+.register-submitFace:hover {
+    background-color: rgb(48 237 177);
+    color: black;
+}
 
 .register-submit {
     width: 100%;
@@ -80,13 +97,15 @@
     font-size: 1.1rem;
     border-radius: 5px;
     padding: 0.2rem 0;
-    margin-top: 0.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
     cursor: pointer;
     transition: 0.5s all ease;
 }
 
 .register-submit:hover {
-    background-color: rgb(16, 63, 97);
+    background-color: rgb(48 237 177);
+    color: black;
 }
 
 .register-form__bottom-text {

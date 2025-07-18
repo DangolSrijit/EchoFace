@@ -97,7 +97,7 @@ const Login = () => {
 
                     // Redirect based on user role
                     if (user.role === 'admin') {
-                        navigate("/admin");
+                        navigate("/adminpage");
                     } else if (user.role === 'participant') {
                         navigate("/user");
                     } else {

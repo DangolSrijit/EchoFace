@@ -1,61 +1,108 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const SelectPurpose = () => {
   const navigate = useNavigate();
   const { roomName } = useParams();
+  const [fadeIn, setFadeIn] = useState(false);
+
+  useEffect(() => {
+    setFadeIn(true);
+  }, []);
 
   const handlePurposeSelect = (purpose) => {
     navigate(`/pre-call-settings/${roomName}`, { state: { purpose } });
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#0f141f',
-        color: '#00fff7',
-        fontFamily: "'Share Tech Mono', monospace",
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: '2rem',
-        padding: '2rem',
-      }}
-    >
-      <h2 style={{ fontSize: '2rem', textShadow: '0 0 10px #00fff7' }}>
-        Select Purpose of Video Call
-      </h2>
-      <div style={{ display: 'flex', gap: '2rem' }}>
-        <button
-          onClick={() => handlePurposeSelect('interview')}
-          style={buttonStyle}
-        >
-          Interview
-        </button>
-        <button
-          onClick={() => handlePurposeSelect('online_exam')}
-          style={{ ...buttonStyle, backgroundColor: '#b12d25', boxShadow: '0 0 15px #b12d25' }}
-        >
-          Online Exam
-        </button>
+    <div style={{ ...styles.pageContainer, opacity: fadeIn ? 1 : 0 }}>
+      <div style={styles.card}>
+        <h2 style={styles.heading}>Select the Purpose of Your Video Call</h2>
+        <p style={styles.description}>
+          Choose the appropriate option below to continue to pre-call settings tailored for your session.
+        </p>
+        <div style={styles.buttonGroup}>
+          <InteractiveButton label="Interview" onClick={() => handlePurposeSelect('interview')} />
+          <InteractiveButton label="Online Exam" onClick={() => handlePurposeSelect('online_exam')} />
+        </div>
       </div>
     </div>
   );
 };
 
-const buttonStyle = {
-  padding: '14px 28px',
-  fontSize: '1.2rem',
-  fontWeight: '700',
-  borderRadius: '12px',
-  cursor: 'pointer',
-  backgroundColor: '#00fff7',
-  color: '#010a14',
-  border: 'none',
-  boxShadow: '0 0 15px #00fff7',
-  transition: 'box-shadow 0.3s ease',
+const InteractiveButton = ({ label, onClick }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+
+  return (
+    <button
+      aria-label={label}
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsPressed(false);
+      }}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      style={{
+        ...styles.button,
+        transform: isPressed ? 'scale(0.96)' : 'scale(1)',
+        backgroundColor: isHovered ? '#185abc' : '#1a73e8',
+      }}
+    >
+      {label}
+    </button>
+  );
+};
+
+const styles = {
+  pageContainer: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f5f5',
+    fontFamily: "'Google Sans', sans-serif",
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '2rem',
+    transition: 'opacity 0.6s ease-in-out',
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    padding: '3rem 4rem',
+    maxWidth: '480px',
+    width: '100%',
+    textAlign: 'center',
+  },
+  heading: {
+    fontSize: '2.2rem',
+    color: '#202124',
+    marginBottom: '0.5rem',
+  },
+  description: {
+    fontSize: '1rem',
+    color: '#5f6368',
+    marginBottom: '2rem',
+  },
+  buttonGroup: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1.5rem',
+    justifyContent: 'center',
+  },
+  button: {
+    padding: '0.9rem 2rem',
+    fontSize: '1.1rem',
+    fontWeight: 600,
+    color: '#fff',
+    borderRadius: '8px',
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 4px 10px rgba(26, 115, 232, 0.3)',
+    transition: 'background-color 0.3s ease, transform 0.1s ease',
+  },
 };
 
 export default SelectPurpose;

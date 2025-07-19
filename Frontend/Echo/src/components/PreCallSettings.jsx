@@ -19,8 +19,6 @@ const PreCallSettings = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-
-      // Initially respect mic/video settings
       mediaStream.getAudioTracks().forEach(track => {
         track.enabled = micOn;
       });
@@ -36,7 +34,6 @@ const PreCallSettings = () => {
     };
   }, []);
 
-  // Toggle mic: enable/disable audio tracks
   const toggleMic = () => {
     if (stream) {
       stream.getAudioTracks().forEach(track => {
@@ -46,7 +43,6 @@ const PreCallSettings = () => {
     setMicOn(prev => !prev);
   };
 
-  // Toggle video: enable/disable video tracks
   const toggleVideo = () => {
     if (stream) {
       stream.getVideoTracks().forEach(track => {
@@ -63,87 +59,173 @@ const PreCallSettings = () => {
   };
 
   return (
-    <div
-      style={{
-        padding: '2rem',
-        color: '#00fff7',
-        backgroundColor: '#0f141f',
-        minHeight: '100vh',
-        fontFamily: "'Share Tech Mono', monospace",
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      <h2 style={{ marginBottom: '1rem' }}>Prepare Your Settings</h2>
-      <h3 style={{ marginBottom: '2rem', textTransform: 'capitalize' }}>Purpose: {purpose.replace('_', ' ')}</h3>
+    <div style={styles.page}>
+      <main style={styles.card}>
+        <div style={styles.progressBarContainer}>
+          <div style={{ ...styles.progressBar, width: '66%' }} />
+          <span style={styles.progressText}>Step 2 of 3</span>
+        </div>
 
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        style={{
-          width: '320px',
-          height: '240px',
-          borderRadius: '10px',
-          border: '2px solid #00fff7',
-          boxShadow: '0 0 12px #00fff7',
-          marginBottom: '2rem',
-        }}
-      />
+        <h2 style={styles.title}>Prepare Your Settings</h2>
+        <p style={styles.purposeText}>
+          Purpose of this call is <strong>{purpose.replace('_', ' ')}</strong>. 
+          Please ensure your microphone and camera are ready.
+        </p>
 
-      <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          style={styles.video}
+        />
+
+        <div style={styles.buttonsRow}>
+          <button
+            onClick={toggleMic}
+            style={{ 
+              ...styles.toggleBtn, 
+              backgroundColor: micOn ? '#1a73e8' : '#d93025',
+              boxShadow: micOn ? '0 0 12px #1a73e8' : '0 0 12px #d93025',
+              color: 'white',
+            }}
+            aria-pressed={micOn}
+            aria-label="Toggle microphone"
+          >
+            <span style={styles.icon}>{micOn ? '🎤' : '🔇'}</span>
+            {micOn ? 'Mic ON' : 'Mic OFF'}
+          </button>
+
+          <button
+            onClick={toggleVideo}
+            style={{ 
+              ...styles.toggleBtn, 
+              backgroundColor: videoOn ? '#1a73e8' : '#d93025',
+              boxShadow: videoOn ? '0 0 12px #1a73e8' : '0 0 12px #d93025',
+              color: 'white',
+            }}
+            aria-pressed={videoOn}
+            aria-label="Toggle camera"
+          >
+            <span style={styles.icon}>{videoOn ? '📹' : '🚫'}</span>
+            {videoOn ? 'Video ON' : 'Video OFF'}
+          </button>
+        </div>
+
         <button
-          onClick={toggleMic}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: micOn ? '#00fff7' : '#b12d25',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#010a14',
-            fontWeight: '700',
-            boxShadow: micOn ? '0 0 10px #00fff7' : '0 0 10px #b12d25',
-            cursor: 'pointer',
-          }}
+          onClick={handleStartCall}
+          style={styles.startBtn}
+          aria-label="Start call"
         >
-          {micOn ? '🎤 Mic ON' : '🔇 Mic OFF'}
+          Start Call
         </button>
-
-        <button
-          onClick={toggleVideo}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: videoOn ? '#00fff7' : '#b12d25',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#010a14',
-            fontWeight: '700',
-            boxShadow: videoOn ? '0 0 10px #00fff7' : '0 0 10px #b12d25',
-            cursor: 'pointer',
-          }}
-        >
-          {videoOn ? '📹 Video ON' : '🚫 Video OFF'}
-        </button>
-      </div>
-
-      <button
-        onClick={handleStartCall}
-        style={{
-          padding: '12px 24px',
-          fontWeight: '700',
-          fontSize: '16px',
-          backgroundColor: '#00fff7',
-          color: '#010a14',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          boxShadow: '0 0 15px #00fff7',
-        }}
-      >
-        Start Call
-      </button>
+      </main>
     </div>
   );
+};
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    backgroundColor: '#f1f3f4',
+    fontFamily: "'Google Sans', 'Roboto', sans-serif",
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',  // Center vertically now that no header/footer
+    padding: '0 1rem 2rem',
+  },
+  card: {
+    backgroundColor: 'white',
+    width: '100%',
+    maxWidth: '900px',
+    borderRadius: '16px',
+    boxShadow: '0 8px 24px rgba(32,33,36,0.28)',
+    padding: '3rem 4rem',
+    boxSizing: 'border-box',
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    position: 'relative',
+    height: '6px',
+    backgroundColor: '#e8eaed',
+    borderRadius: '4px',
+    marginBottom: '1rem',
+  },
+  progressBar: {
+    height: '6px',
+    backgroundColor: '#1a73e8',
+    borderRadius: '4px',
+    transition: 'width 0.3s ease',
+  },
+  progressText: {
+    position: 'absolute',
+    right: 0,
+    top: '12px',
+    fontSize: '0.875rem',
+    color: '#5f6368',
+  },
+  title: {
+    fontSize: '2rem',
+    fontWeight: '700',
+    marginBottom: '0.25rem',
+    color: '#202124',
+  },
+  purposeText: {
+    fontSize: '1rem',
+    color: '#3c4043',
+    marginBottom: '2rem',
+  },
+  video: {
+    width: '100%',
+    height: '450px',
+    maxHeight: '70vh',
+    borderRadius: '16px',
+    border: '3px solid #1a73e8',
+    boxShadow: '0 0 30px rgba(26, 115, 232, 0.7)',
+    marginBottom: '2rem',
+    objectFit: 'cover',
+    backgroundColor: '#000',
+  },
+  buttonsRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '2rem',
+    flexWrap: 'wrap',
+    marginBottom: '2rem',
+  },
+  toggleBtn: {
+    flex: '1 1 180px',
+    padding: '14px 32px',
+    fontSize: '1.2rem',
+    fontWeight: '600',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    transition: 'box-shadow 0.3s ease, filter 0.3s ease',
+    userSelect: 'none',
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.75rem',
+  },
+  icon: {
+    fontSize: '1.6rem',
+    transition: 'transform 0.3s',
+  },
+  startBtn: {
+    padding: '16px 64px',
+    fontSize: '1.25rem',
+    fontWeight: '700',
+    backgroundColor: '#1a73e8',
+    color: 'white',
+    borderRadius: '16px',
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 6px 20px rgba(26,115,232,0.6)',
+    transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+  },
 };
 
 export default PreCallSettings;

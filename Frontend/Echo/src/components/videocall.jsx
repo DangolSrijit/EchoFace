@@ -1,584 +1,674 @@
-import React, { useRef, useEffect, useState } from 'react';
-import Peer from 'simple-peer';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function VideoCall() {
-  const { roomName } = useParams();
-  const location = useLocation();
+const REACTIONS = ['👏', '❤️', '🙂', '✋', '👍', '🎉'];
+
+const VideoCall = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const localVideoRef = useRef(null);
+  const emojiPanelRef = useRef(null);
 
-  const initialMicOn = location.state?.micOn ?? true;
-  const initialVideoOn = location.state?.videoOn ?? true;
-  const purpose = location.state?.purpose || 'general';
-
-  const currentUser = JSON.parse(localStorage.getItem("user"))?.username || "You";
-
-  const [micOn, setMicOn] = useState(initialMicOn);
-  const [videoOn, setVideoOn] = useState(initialVideoOn);
-  const [peers, setPeers] = useState([]);
+  const [micOn, setMicOn] = useState(true);
+  const [cameraOn, setCameraOn] = useState(true);
+  const [sharingScreen, setSharingScreen] = useState(false);
   const [stream, setStream] = useState(null);
-  const [adminUsername, setAdminUsername] = useState(currentUser);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const [screenSharing, setScreenSharing] = useState(false);
-  const [selfId, setSelfId] = useState(null);  // <-- store own ID here
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [inputMsg, setInputMsg] = useState('');
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
+  const [showEmojiPanel, setShowEmojiPanel] = useState(false);
 
-  const userVideo = useRef();
-  const socketRef = useRef();
-  const peersRef = useRef([]);
+  // Generate a secure random room ID with uppercase alphabets and digits
+  const generateRoomId = (length = 8) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for(let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  // Purpose from navigation state or default
+  const purpose = location.state?.purpose || 'Meeting';
+
+  // Generate room number once
+  const [roomNumber] = useState(`Room-${generateRoomId()}`);
 
   useEffect(() => {
-    socketRef.current = new WebSocket(`ws://localhost:8000/ws/call/${roomName}/`);
-
-    navigator.mediaDevices.getUserMedia({
-      video: initialVideoOn,
-      audio: initialMicOn,
-    }).then((mediaStream) => {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((mediaStream) => {
       setStream(mediaStream);
-      if (userVideo.current) {
-        userVideo.current.srcObject = mediaStream;
-        userVideo.current.style.transform = 'scaleX(-1)';
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = mediaStream;
       }
-
-      socketRef.current.onopen = () => {
-        console.log("WebSocket connected");
-        // You can send a "join" after receiving selfId, or send immediately if server generates on join
-        // We'll assume server assigns selfId after join
-        socketRef.current.send(JSON.stringify({
-          type: "join",
-          username: currentUser,
-        }));
-      };
-
-      socketRef.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'your_id') {
-          // Server sends your unique ID after join
-          setSelfId(data.id);
-          console.log("Assigned selfId:", data.id);
-        }
-
-        if (data.type === 'all_users') {
-          if (data.users.length > 0 && !adminUsername) {
-            setAdminUsername(data.users[0].username);
-          }
-          const peersArr = [];
-          data.users.forEach(user => {
-            if (user.id === selfId) return; // Don't create peer for self
-            const peer = createPeer(user.id, selfId, mediaStream);
-            peersRef.current.push({
-              peerID: user.id,
-              peer,
-              username: user.username,
-              mic: true,
-              video: true,
-            });
-            peersArr.push({ peer, username: user.username, mic: true, video: true });
-          });
-          setPeers(peersArr);
-        }
-
-        if (data.type === 'user_joined') {
-          if (data.userId === selfId) return; // Ignore self
-          const peer = addPeer(data.signal, data.userId, mediaStream);
-          peersRef.current.push({
-            peerID: data.userId,
-            peer,
-            username: data.username,
-            mic: true,
-            video: true,
-          });
-          setPeers(users => [...users, { peer, username: data.username, mic: true, video: true }]);
-        }
-
-        if (data.type === 'signal') {
-          const item = peersRef.current.find(p => p.peerID === data.from);
-          if (item) item.peer.signal(data.signal);
-        }
-
-        if (data.type === 'update_status') {
-          peersRef.current = peersRef.current.map(p => {
-            if (p.peerID === data.userId) {
-              return { ...p, mic: data.mic, video: data.video };
-            }
-            return p;
-          });
-          setPeers(peersRef.current.map(({peer, username, mic, video}) => ({peer, username, mic, video})));
-        }
-
-        if (data.type === 'user_left') {
-          peersRef.current = peersRef.current.filter(p => p.peerID !== data.userId);
-          setPeers(peersRef.current.map(({peer, username, mic, video}) => ({peer, username, mic, video})));
-        }
-
-        if (data.type === 'chat_message') {
-          setChatMessages(messages => [...messages, { username: data.username, message: data.message }]);
-        }
-
-        if (data.type === 'kicked') {
-          if (data.userId === selfId) {
-            alert('You have been kicked from the meeting.');
-            window.location.href = '/';
-          }
-        }
-      };
-
-      socketRef.current.onclose = () => {
-        console.log("WebSocket disconnected");
-      };
     });
 
     return () => {
-      // destroy peers
-      peersRef.current.forEach(({ peer }) => peer.destroy());
-      peersRef.current = [];
-
-      // close socket
-      if (socketRef.current) socketRef.current.close();
-
-      // stop all tracks and clear video element
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-
-      if (userVideo.current) {
-        userVideo.current.srcObject = null;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [roomName, selfId]);  // added selfId to deps
+  }, []);
 
-  function createPeer(userToSignal, callerID, stream) {
-    const peer = new Peer({
-      initiator: true,
-      trickle: false,
-      stream: stream,
-    });
-
-    peer.on('signal', signal => {
-      socketRef.current.send(JSON.stringify({
-        type: 'signal',
-        target: userToSignal,
-        caller: callerID,
-        signal,
-      }));
-    });
-
-    peer.on('connect', () => {
-      console.log(`Peer connected with ${userToSignal}`);
-    });
-
-    peer.on('error', err => {
-      console.error('Peer error:', err);
-    });
-
-    return peer;
-  }
-
-  function addPeer(incomingSignal, callerID, stream) {
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream: stream,
-    });
-
-    peer.on('signal', signal => {
-      socketRef.current.send(JSON.stringify({
-        type: 'signal',
-        target: callerID,
-        caller: selfId,
-        signal,
-      }));
-    });
-
-    peer.signal(incomingSignal);
-
-    peer.on('connect', () => {
-      console.log(`Peer connected with ${callerID}`);
-    });
-
-    peer.on('error', err => {
-      console.error('Peer error:', err);
-    });
-
-    return peer;
-  }
+  // Close emoji panel on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPanelRef.current && !emojiPanelRef.current.contains(event.target)) {
+        setShowEmojiPanel(false);
+      }
+    };
+    if (showEmojiPanel) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPanel]);
 
   const toggleMic = () => {
-    if (!stream) return;
-    const enabled = !micOn;
-    stream.getAudioTracks().forEach(track => (track.enabled = enabled));
-    setMicOn(enabled);
-    sendStatusUpdate(enabled, videoOn);
-  };
-
-  const toggleVideo = () => {
-    if (!stream) return;
-    const enabled = !videoOn;
-    stream.getVideoTracks().forEach(track => (track.enabled = enabled));
-    setVideoOn(enabled);
-    sendStatusUpdate(micOn, enabled);
-  };
-
-  const sendStatusUpdate = (mic, video) => {
-    if (!socketRef.current || !selfId) return;
-    socketRef.current.send(JSON.stringify({
-      type: 'update_status',
-      userId: selfId,
-      mic,
-      video,
-    }));
-  };
-
-  const adminToggleMute = (peerID, mute) => {
-    socketRef.current.send(JSON.stringify({
-      type: 'admin_mute',
-      target: peerID,
-      mute,
-    }));
-  };
-
-  const adminKickUser = (peerID) => {
-    if(window.confirm('Are you sure you want to kick this user?')) {
-      socketRef.current.send(JSON.stringify({
-        type: 'admin_kick',
-        target: peerID,
-      }));
-      peersRef.current = peersRef.current.filter(p => p.peerID !== peerID);
-      setPeers(peersRef.current.map(({peer, username, mic, video}) => ({peer, username, mic, video})));
+    if (stream) {
+      stream.getAudioTracks().forEach(track => (track.enabled = !micOn));
     }
+    setMicOn(prev => !prev);
   };
 
-  const startScreenShare = async () => {
-    if (screenSharing) {
-      stopScreenShare();
-      return;
+  const toggleCamera = () => {
+    if (stream) {
+      stream.getVideoTracks().forEach(track => (track.enabled = !cameraOn));
     }
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      peersRef.current.forEach(({peer}) => {
-        const sender = peer._pc.getSenders().find(s => s.track.kind === 'video');
-        if (sender) sender.replaceTrack(screenStream.getVideoTracks()[0]);
-      });
-      const videoTrack = screenStream.getVideoTracks()[0];
-      stream.getVideoTracks()[0].stop();
-      stream.removeTrack(stream.getVideoTracks()[0]);
-      stream.addTrack(videoTrack);
-      if (userVideo.current) {
-        userVideo.current.srcObject = screenStream;
-        userVideo.current.style.transform = 'none';
+    setCameraOn(prev => !prev);
+  };
+
+  const toggleScreenShare = async () => {
+    if (!sharingScreen) {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const videoTrack = screenStream.getVideoTracks()[0];
+
+        if (stream) {
+          stream.getVideoTracks()[0].stop();
+        }
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
+        }
+
+        videoTrack.onended = () => {
+          if (stream && localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+          }
+          setSharingScreen(false);
+        };
+
+        setSharingScreen(true);
+      } catch (err) {
+        console.error('Screen share error:', err);
       }
-
-      videoTrack.onended = () => {
-        stopScreenShare();
-      };
-
-      setStream(screenStream);
-      setScreenSharing(true);
-    } catch (err) {
-      console.error("Screen share error:", err);
+    } else {
+      if (stream && localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      setSharingScreen(false);
     }
   };
 
-  const stopScreenShare = async () => {
-    const webcamStream = await navigator.mediaDevices.getUserMedia({
-      video: videoOn,
-      audio: micOn,
-    });
-    peersRef.current.forEach(({peer}) => {
-      const sender = peer._pc.getSenders().find(s => s.track.kind === 'video');
-      if (sender) sender.replaceTrack(webcamStream.getVideoTracks()[0]);
-    });
-    if (userVideo.current) {
-      userVideo.current.srcObject = webcamStream;
-      userVideo.current.style.transform = 'scaleX(-1)';
+  const handleLeave = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
     }
-    setStream(webcamStream);
-    setScreenSharing(false);
+    navigate('/');
   };
 
   const sendMessage = () => {
-    if (!chatInput.trim() || !socketRef.current) return;
-    socketRef.current.send(JSON.stringify({
-      type: 'chat_message',
-      username: currentUser,
-      message: chatInput.trim(),
-    }));
-    setChatInput('');
-  };
-
-  const handleChatKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      sendMessage();
+    if (inputMsg.trim()) {
+      setMessages(prev => [...prev, { text: inputMsg, from: 'Me' }]);
+      setInputMsg('');
     }
   };
 
-  // const streamRef = useRef(null);
-
-  // useEffect(() => {
-  //   streamRef.current = stream;
-  // }, [stream]);
-
-  // const endCall = () => {
-  //   peersRef.current.forEach(({ peer }) => peer.destroy());
-  //   peersRef.current = [];
-  //   setPeers([]);
-
-  //   if (socketRef.current) socketRef.current.close();
-
-  //   if (streamRef.current) {
-  //     streamRef.current.getTracks().forEach(track => track.stop());
-  //   }
-
-  //   if (userVideo.current) {
-  //     userVideo.current.srcObject = null;
-  //   }
-
-  //   navigate('/user');
-  // };
-  const streamRef = useRef(null);
-
-useEffect(() => {
-  streamRef.current = stream;
-}, [stream]);
-
-const endCall = () => {
-  // Destroy all peers
-  peersRef.current.forEach(({ peer }) => peer.destroy());
-  peersRef.current = [];
-  setPeers([]);
-
-  // Close websocket connection
-  if (socketRef.current) {
-    socketRef.current.close();
-  }
-
-  // Stop all tracks from current stream (webcam or screen share)
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(track => {
-      try {
-        track.stop();
-      } catch (e) {
-        console.warn('Error stopping track:', e);
-      }
-    });
-  }
-
-  // Clear the video element srcObject (to release hardware)
-  if (userVideo.current) {
-    userVideo.current.srcObject = null;
-  }
-
-  // Reset stream state to null (optional, forces rerender)
-  setStream(null);
-
-  // Redirect to user page
-  navigate('/user');
-};
-
-
-
-  const isAdmin = currentUser === adminUsername;
+  const handleEmojiSelect = (emoji) => {
+    const id = Date.now();
+    setFloatingEmojis(prev => [...prev, { id, emoji }]);
+    setShowEmojiPanel(false);
+    setTimeout(() => {
+      setFloatingEmojis(prev => prev.filter(e => e.id !== id));
+    }, 2000);
+  };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: "'Share Tech Mono', monospace", color: '#00fff7', backgroundColor: '#0f141f' }}>
-      {/* Video + controls section */}
-      <div style={{ flex: 3, padding: '1rem', display: 'flex', flexDirection: 'column' }}>
-        <h2 style={{ marginBottom: '1rem', textShadow: '0 0 10px #00fff7' }}>Room: {roomName}</h2>
-        <h3 style={{ marginBottom: '1rem', fontWeight: '600', textTransform: 'capitalize' }}>Purpose: {purpose.replace('_', ' ')}</h3>
+    <div style={{
+      ...styles.container,
+      fontFeatureSettings: "'liga' 1",
+      userSelect: 'none',
+      WebkitFontSmoothing: 'antialiased',
+      MozOsxFontSmoothing: 'grayscale',
+      backgroundColor: '#f9fafb',
+    }}>
+      {/* Purpose & Room */}
+      <div style={{
+        ...styles.roomInfo,
+        fontWeight: 600,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+        color: '#3c4043',
+        boxShadow: '0 8px 24px rgba(60,64,67,0.1)',
+        transition: 'box-shadow 0.3s ease',
+      }}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 12px 30px rgba(26,115,232,0.3)'}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(60,64,67,0.1)'}
+      >
+        <div style={{ fontSize: 14, marginBottom: 4 }}>{purpose.charAt(0).toUpperCase() + purpose.slice(1).replace('_', ' ')}</div>
+        <div style={{ fontSize: 13, color: '#5f6368', fontWeight: 500 }}>{roomNumber}</div>
+      </div>
 
-        <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <button onClick={toggleMic} style={{ ...buttonStyle, backgroundColor: micOn ? '#00fff7' : '#b12d25', boxShadow: `0 0 10px ${micOn ? '#00fff7' : '#b12d25'}` }}>
-            {micOn ? '🎤 Mute Mic' : '🔇 Unmute Mic'}
+      {/* Video */}
+      <video
+        ref={localVideoRef}
+        autoPlay
+        muted
+        playsInline
+        style={{
+          ...styles.video,
+          borderRadius: 12,
+          boxShadow: '0 0 40px rgba(26, 115, 232, 0.25)',
+          transition: 'box-shadow 0.4s ease',
+        }}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 60px rgba(26, 115, 232, 0.5)'}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 40px rgba(26, 115, 232, 0.25)'}
+      />
+
+      {/* Floating emojis */}
+      {floatingEmojis.map(({ id, emoji }) => (
+        <div
+          key={id}
+          style={{
+            ...styles.floatingEmoji,
+            left: `${Math.random() * 80 + 10}%`,
+            textShadow: '0 2px 6px rgba(0,0,0,0.15)',
+            filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.2))',
+            fontWeight: 'bold',
+          }}
+        >
+          {emoji}
+        </div>
+      ))}
+
+      {/* Controls */}
+      <div style={{
+        ...styles.controlBar,
+        backgroundColor: '#ffffffcc',
+        backdropFilter: 'saturate(180%) blur(12px)',
+        border: '1px solid #e8eaed',
+        boxShadow: '0 12px 24px rgba(26,115,232,0.25)',
+      }}>
+        <div
+          style={styles.controlGroup}
+          tabIndex={0}
+          role="button"
+          aria-pressed={micOn}
+          onClick={toggleMic}
+          onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') toggleMic(); }}
+          title={micOn ? 'Mute microphone' : 'Unmute microphone'}
+          aria-label="Toggle Microphone"
+          className="control-button"
+        >
+          <button style={{
+            ...styles.activeButton,
+            backgroundColor: micOn ? '#1a73e8' : '#d93025',
+            boxShadow: micOn
+              ? '0 6px 14px rgba(26,115,232,0.6)'
+              : '0 6px 14px rgba(217,48,37,0.7)',
+            transform: micOn ? 'scale(1.1)' : 'scale(0.95)',
+            transition: 'all 0.25s ease',
+          }}>
+            {micOn ? '🎤' : '🔇'}
           </button>
-          <button onClick={toggleVideo} style={{ ...buttonStyle, backgroundColor: videoOn ? '#00fff7' : '#b12d25', boxShadow: `0 0 10px ${videoOn ? '#00fff7' : '#b12d25'}` }}>
-            {videoOn ? 'Turn Off Video' : 'Turn On Video'}
-          </button>
-          <button onClick={screenSharing ? stopScreenShare : startScreenShare} style={{ ...buttonStyle, backgroundColor: screenSharing ? '#b12d25' : '#00fff7' }}>
-            {screenSharing ? 'Stop Sharing' : 'Share Screen'}
-          </button>
-          <button onClick={endCall} style={{ ...buttonStyle, backgroundColor: '#b12d25' }}>
-            📞 Hang Up
-          </button>
+          <div style={{ ...styles.buttonLabel, fontWeight: '600', color: micOn ? '#1a73e8' : '#d93025' }}>
+            {micOn ? 'Mic On' : 'Mic Off'}
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', flexGrow: 1, overflowY: 'auto' }}>
-          <ParticipantVideo
-            videoRef={userVideo}
-            username={currentUser}
-            isAdmin={isAdmin}
-            mic={micOn}
-            video={videoOn}
-            isLocal={true}
-          />
-          {peers.map(({ peer, username, mic, video }, index) => (
-            <RemoteVideo
-              key={index}
-              peer={peer}
-              username={username}
-              isAdmin={username === adminUsername}
-              mic={mic}
-              video={video}
-              isAdminUser={isAdmin}
-              onMute={() => adminToggleMute(peersRef.current[index].peerID, true)}
-              onUnmute={() => adminToggleMute(peersRef.current[index].peerID, false)}
-              onKick={() => adminKickUser(peersRef.current[index].peerID)}
-            />
+        <div
+          style={styles.controlGroup}
+          tabIndex={0}
+          role="button"
+          aria-pressed={cameraOn}
+          onClick={toggleCamera}
+          onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') toggleCamera(); }}
+          title={cameraOn ? 'Turn off camera' : 'Turn on camera'}
+          aria-label="Toggle Camera"
+          className="control-button"
+        >
+          <button style={{
+            ...styles.activeButton,
+            backgroundColor: cameraOn ? '#1a73e8' : '#d93025',
+            boxShadow: cameraOn
+              ? '0 6px 14px rgba(26,115,232,0.6)'
+              : '0 6px 14px rgba(217,48,37,0.7)',
+            transform: cameraOn ? 'scale(1.1)' : 'scale(0.95)',
+            transition: 'all 0.25s ease',
+          }}>
+            {cameraOn ? '📹' : '🚫'}
+          </button>
+          <div style={{ ...styles.buttonLabel, fontWeight: '600', color: cameraOn ? '#1a73e8' : '#d93025' }}>
+            {cameraOn ? 'Cam On' : 'Cam Off'}
+          </div>
+        </div>
+
+        <div
+          style={styles.controlGroup}
+          tabIndex={0}
+          role="button"
+          onClick={toggleScreenShare}
+          onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') toggleScreenShare(); }}
+          title={sharingScreen ? 'Stop sharing screen' : 'Share your screen'}
+          aria-label="Toggle Screen Share"
+          className="control-button"
+        >
+          <button style={{
+            ...styles.activeButton,
+            backgroundColor: '#1a73e8',
+            boxShadow: '0 6px 14px rgba(26,115,232,0.6)',
+            transform: sharingScreen ? 'scale(1.1)' : 'scale(1)',
+            transition: 'all 0.25s ease',
+          }}>
+            {sharingScreen ? '🛑' : '🖥️'}
+          </button>
+          <div style={{ ...styles.buttonLabel, fontWeight: '600', color: '#1a73e8' }}>
+            {sharingScreen ? 'Stop Share' : 'Share Screen'}
+          </div>
+        </div>
+
+        <div
+          style={styles.controlGroup}
+          tabIndex={0}
+          role="button"
+          onClick={() => setShowChat(prev => !prev)}
+          onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') setShowChat(prev => !prev); }}
+          title={showChat ? 'Hide chat panel' : 'Open chat panel'}
+          aria-label="Toggle Chat"
+          className="control-button"
+        >
+          <button style={{
+            ...styles.activeButton,
+            backgroundColor: '#1a73e8',
+            boxShadow: '0 6px 14px rgba(26,115,232,0.6)',
+            transform: showChat ? 'scale(1.1)' : 'scale(1)',
+            transition: 'all 0.25s ease',
+          }}>
+            💬
+          </button>
+          <div style={{ ...styles.buttonLabel, fontWeight: '600', color: '#1a73e8' }}>
+            {showChat ? 'Hide Chat' : 'Open Chat'}
+          </div>
+        </div>
+
+        {/* Emoji reaction button */}
+        <div
+          style={{ ...styles.controlGroup, position: 'relative', cursor: 'default' }}
+          ref={emojiPanelRef}
+          tabIndex={-1}
+        >
+          <button
+            onClick={() => setShowEmojiPanel(prev => !prev)}
+            style={{
+              ...styles.activeButton,
+              backgroundColor: '#1a73e8',
+              boxShadow: '0 6px 14px rgba(26,115,232,0.6)',
+              transition: 'all 0.25s ease',
+              userSelect: 'none',
+              transform: showEmojiPanel ? 'scale(1.1)' : 'scale(1)',
+              cursor: 'pointer',
+            }}
+            aria-label="Open Emoji Reactions"
+            aria-expanded={showEmojiPanel}
+          >
+            😊
+          </button>
+          <div style={{ ...styles.buttonLabel, fontWeight: '600', color: '#1a73e8' }}>
+            Reactions
+          </div>
+
+          {showEmojiPanel && (
+            <div
+              style={{
+                ...styles.emojiPanel,
+                boxShadow: '0 10px 30px rgba(26,115,232,0.3)',
+                borderColor: '#1a73e8',
+              }}
+            >
+              {REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleEmojiSelect(emoji)}
+                  style={{
+                    ...styles.emojiBtn,
+                    fontSize: 26,
+                    transition: 'transform 0.2s ease',
+                  }}
+                  aria-label={`Send reaction ${emoji}`}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.4)')}
+                  onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          style={styles.controlGroup}
+          tabIndex={0}
+          role="button"
+          onClick={handleLeave}
+          onKeyDown={e => { if(e.key === 'Enter' || e.key === ' ') handleLeave(); }}
+          title="Leave the call"
+          aria-label="Leave Call"
+          className="control-button"
+        >
+          <button style={{
+            ...styles.hangupButton,
+            boxShadow: '0 8px 20px rgba(217,48,37,0.9)',
+            transform: 'scale(1)',
+            transition: 'transform 0.2s ease',
+          }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            ❌
+          </button>
+          <div style={{ ...styles.buttonLabel, fontWeight: '600', color: '#d93025' }}>
+            Leave
+          </div>
+        </div>
+      </div>
+
+      {/* Chat box */}
+      <div
+        style={{
+          ...styles.chatBox,
+          right: showChat ? 0 : '-320px',
+          boxShadow: '0 0 24px rgba(26,115,232,0.2)',
+          transition: 'right 0.3s ease, box-shadow 0.3s ease',
+          borderRadius: 12,
+          backgroundColor: '#ffffffee',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <h3 style={{
+          ...styles.chatHeader,
+          fontWeight: '700',
+          letterSpacing: '0.05em',
+          color: '#1a73e8',
+          textShadow: '0 1px 3px rgba(26,115,232,0.6)',
+        }}>
+          Chat
+        </h3>
+        <div style={{
+          ...styles.chatMessages,
+          fontSize: 14,
+          lineHeight: 1.4,
+          color: '#202124',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#1a73e8 #f1f3f4',
+        }}>
+          {messages.map((msg, idx) => (
+            <div key={idx} style={{
+              ...styles.chatMessage,
+              padding: '6px 8px',
+              borderRadius: 6,
+              backgroundColor: '#e8f0fe',
+              marginBottom: 10,
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+            }}>
+              <strong style={{ color: '#1a73e8' }}>{msg.from}:</strong> {msg.text}
+            </div>
           ))}
         </div>
-      </div>
-
-      {/* Sidebar: Participants + Chat */}
-      <div style={{ width: '320px', borderLeft: '1px solid #00fff7', display: 'flex', flexDirection: 'column' }}>
-        {/* Participants List */}
-        <div style={{ padding: '1rem', borderBottom: '1px solid #00fff7', flexShrink: 0 }}>
-          <h3>Participants</h3>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            <li style={{ padding: '4px 0', fontWeight: isAdmin ? '700' : 'normal', color: isAdmin ? '#00fff7' : 'inherit' }}>
-              {currentUser} {isAdmin ? '(Admin)' : ''}
-              <span style={{ marginLeft: '8px' }}>{micOn ? '🎤' : '🔇'}</span>
-              <span style={{ marginLeft: '4px' }}>{videoOn ? '📹' : '🚫'}</span>
-            </li>
-            {peers.map(({ username, mic, video }, i) => (
-              <li key={i} style={{ padding: '4px 0', fontWeight: username === adminUsername ? '700' : 'normal', color: username === adminUsername ? '#00fff7' : 'inherit' }}>
-                {username} {username === adminUsername ? '(Admin)' : ''}
-                <span style={{ marginLeft: '8px' }}>{mic ? '🎤' : '🔇'}</span>
-                <span style={{ marginLeft: '4px' }}>{video ? '📹' : '🚫'}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Chat */}
-        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-          <h3>Chat</h3>
-          <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #00fff7', borderRadius: '8px', padding: '8px', marginBottom: '8px', color: '#00fff7' }}>
-            {chatMessages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: '6px' }}>
-                <strong>{msg.username}: </strong><span>{msg.message}</span>
-              </div>
-            ))}
-          </div>
+        <div style={{
+          ...styles.chatInputContainer,
+          gap: 8,
+        }}>
           <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            onKeyDown={handleChatKeyPress}
-            placeholder="Type a message and press Enter"
+            value={inputMsg}
+            onChange={(e) => setInputMsg(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Type a message"
             style={{
-              padding: '8px',
-              borderRadius: '8px',
-              border: '1px solid #00fff7',
-              backgroundColor: '#0f141f',
-              color: '#00fff7',
+              ...styles.chatInput,
+              fontSize: 16,
+              boxShadow: '0 0 6px rgba(26,115,232,0.3)',
+              transition: 'box-shadow 0.3s ease',
             }}
+            onFocus={e => e.currentTarget.style.boxShadow = '0 0 12px rgba(26,115,232,0.6)'}
+            onBlur={e => e.currentTarget.style.boxShadow = '0 0 6px rgba(26,115,232,0.3)'}
           />
+          <button
+            onClick={sendMessage}
+            style={{
+              ...styles.chatSendButton,
+              fontWeight: '700',
+              letterSpacing: '0.03em',
+              boxShadow: '0 4px 12px rgba(26,115,232,0.6)',
+              transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#155ab6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#1a73e8'}
+          >
+            Send
+          </button>
         </div>
       </div>
+
+      {/* Float animation keyframe */}
+      <style>{`
+        @keyframes floatUp {
+          0% { transform: translateY(0); opacity: 1; }
+          100% { transform: translateY(-120px); opacity: 0; }
+        }
+        /* Scrollbar for chat */
+        div::-webkit-scrollbar {
+          width: 8px;
+        }
+        div::-webkit-scrollbar-track {
+          background: #f1f3f4;
+          border-radius: 6px;
+        }
+        div::-webkit-scrollbar-thumb {
+          background-color: #1a73e8;
+          border-radius: 6px;
+          border: 2px solid #f1f3f4;
+        }
+        /* Button focus outline */
+        button:focus-visible {
+          outline: 3px solid #1a73e8;
+          outline-offset: 3px;
+        }
+        /* Smooth button hover */
+        button.control-button:hover {
+          filter: brightness(1.1);
+        }
+      `}</style>
     </div>
   );
-}
-
-const buttonStyle = {
-  padding: '10px 20px',
-  border: 'none',
-  borderRadius: '8px',
-  color: '#010a14',
-  cursor: 'pointer',
-  fontWeight: '700',
-  transition: 'background-color 0.3s ease',
-  fontSize: '16px',
 };
 
-function ParticipantVideo({ videoRef, username, isAdmin, mic, video, isLocal }) {
-  return (
-    <div style={{ position: 'relative', minWidth: '300px', minHeight: '200px' }}>
-      <video
-        ref={videoRef}
-        autoPlay
-        muted={isLocal}
-        style={{
-          width: '300px',
-          borderRadius: '8px',
-          border: '1px solid #00fff7',
-          boxShadow: '0 0 12px #00fff7',
-          transform: isLocal ? 'scaleX(-1)' : 'none',
-        }}
-      />
-      <div style={labelStyle}>
-        {username} {isAdmin ? '(Admin)' : ''}
-        <span style={{ marginLeft: 8 }}>{mic ? '🎤' : '🔇'}</span>
-        <span style={{ marginLeft: 4 }}>{video ? '📹' : '🚫'}</span>
-      </div>
-    </div>
-  );
-}
-
-function RemoteVideo({ peer, username, isAdmin, mic, video, isAdminUser, onMute, onUnmute, onKick }) {
-  const ref = useRef();
-
-  useEffect(() => {
-    peer.on('stream', stream => {
-      if (ref.current) {
-        ref.current.srcObject = stream;
-        ref.current.style.transform = 'none';
-      }
-    });
-  }, [peer]);
-
-  return (
-    <div style={{ position: 'relative', minWidth: '300px', minHeight: '200px' }}>
-      <video
-        playsInline
-        autoPlay
-        ref={ref}
-        style={{
-          width: '300px',
-          borderRadius: '8px',
-          border: '1px solid #00fff7',
-          boxShadow: '0 0 12px #00fff7',
-        }}
-      />
-      <div style={labelStyle}>
-        {username} {isAdmin ? '(Admin)' : ''}
-        <span style={{ marginLeft: 8 }}>{mic ? '🎤' : '🔇'}</span>
-        <span style={{ marginLeft: 4 }}>{video ? '📹' : '🚫'}</span>
-
-        {isAdminUser && !isAdmin && (
-          <span style={{ marginLeft: 12 }}>
-            {mic ? (
-              <button style={adminButtonStyle} onClick={onMute}>Mute</button>
-            ) : (
-              <button style={adminButtonStyle} onClick={onUnmute}>Unmute</button>
-            )}
-            <button style={adminButtonStyle} onClick={onKick}>Kick</button>
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const labelStyle = {
-  position: 'absolute',
-  bottom: 4,
-  left: 8,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  color: '#00fff7',
-  padding: '2px 8px',
-  borderRadius: '4px',
-  fontWeight: '700',
-  fontSize: '14px',
+const styles = {
+  container: {
+    width: '100vw',
+    height: '100vh',
+    backgroundColor: '#fff',
+    fontFamily: "'Google Sans', 'Roboto', sans-serif",
+    color: '#202124',
+    display: 'flex',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  roomInfo: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    padding: '10px 16px',
+    borderRadius: 12,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    zIndex: 20,
+    fontSize: '1rem',
+    userSelect: 'none',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    backgroundColor: '#000',
+  },
+  floatingEmoji: {
+    position: 'absolute',
+    bottom: 100,
+    fontSize: '2.5rem',
+    animation: 'floatUp 2s ease-out',
+    pointerEvents: 'none',
+    userSelect: 'none',
+    zIndex: 30,
+  },
+  controlBar: {
+    position: 'absolute',
+    bottom: 24,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: 24,
+    zIndex: 10,
+    backgroundColor: '#fff',
+    padding: '8px 16px',
+    borderRadius: 32,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+    alignItems: 'center',
+  },
+  controlGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    fontSize: 14,
+    color: '#5f6368',
+    userSelect: 'none',
+    cursor: 'pointer',
+  },
+  buttonLabel: {
+    marginTop: 4,
+    fontSize: 12,
+  },
+  activeButton: {
+    padding: 12,
+    fontSize: 20,
+    backgroundColor: '#1a73e8',
+    border: 'none',
+    borderRadius: '50%',
+    color: '#fff',
+    cursor: 'pointer',
+    boxShadow: '0 4px 8px rgba(26,115,232,0.6)',
+    transition: 'background-color 0.3s, transform 0.3s',
+    userSelect: 'none',
+  },
+  inactiveButton: {
+    padding: 12,
+    fontSize: 20,
+    backgroundColor: '#d93025',
+    border: 'none',
+    borderRadius: '50%',
+    color: '#fff',
+    cursor: 'pointer',
+    boxShadow: '0 4px 8px rgba(217,48,37,0.6)',
+    transition: 'background-color 0.3s, transform 0.3s',
+    userSelect: 'none',
+  },
+  emojiPanel: {
+    position: 'absolute',
+    bottom: 60,
+    background: '#f1f3f4',
+    border: '1px solid #dadce0',
+    padding: 8,
+    borderRadius: 12,
+    display: 'flex',
+    gap: 8,
+    zIndex: 100,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+  },
+  emojiBtn: {
+    fontSize: 24,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#202124',
+    transition: 'transform 0.15s ease',
+    userSelect: 'none',
+  },
+  hangupButton: {
+    padding: 12,
+    fontSize: 20,
+    backgroundColor: '#d93025',
+    border: 'none',
+    borderRadius: '50%',
+    color: '#fff',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(217,48,37,0.8)',
+    transition: 'background-color 0.3s',
+  },
+  chatBox: {
+    position: 'absolute',
+    top: 0,
+    width: 320,
+    height: '100%',
+    backgroundColor: '#fff',
+    boxShadow: '0 0 12px rgba(0,0,0,0.15)',
+    transition: 'right 0.3s ease',
+    display: 'flex',
+    flexDirection: 'column',
+    zIndex: 20,
+    padding: 16,
+    userSelect: 'text',
+  },
+  chatHeader: {
+    color: '#1a73e8',
+    marginBottom: 16,
+    textAlign: 'center',
+    fontWeight: 600,
+    fontSize: 18,
+  },
+  chatMessages: {
+    flex: 1,
+    overflowY: 'auto',
+    marginBottom: 16,
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: '#f8f9fa',
+  },
+  chatMessage: {
+    marginBottom: 8,
+    color: '#202124',
+  },
+  chatInputContainer: {
+    display: 'flex',
+  },
+  chatInput: {
+    flex: 1,
+    padding: 8,
+    borderRadius: '6px 0 0 6px',
+    border: '1px solid #dadce0',
+    outline: 'none',
+    fontSize: 16,
+  },
+  chatSendButton: {
+    padding: '0 16px',
+    borderRadius: '0 6px 6px 0',
+    border: 'none',
+    backgroundColor: '#1a73e8',
+    color: '#fff',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'background-color 0.3s',
+  },
 };
 
-const adminButtonStyle = {
-  border: 'none',
-  borderRadius: '4px',
-  padding: '4px 8px',
-  backgroundColor: '#b12d25',
-  color: '#fff',
-  cursor: 'pointer',
-  fontWeight: '700',
-  fontSize: '14px',
-  marginLeft: '4px',
-};
+export default VideoCall;

@@ -1,6 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, User, Camera, Mic, Settings } from 'lucide-react';
+import logo from '../img/logo.png'; // same logo as MainApp
 import './AdminPage.css';
 
 const AdminPage = () => {
@@ -35,61 +36,85 @@ const AdminPage = () => {
 
   return (
     <div className="admin-wrapper">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <h2>Admin Panel</h2>
-        <ul>
-          {menuItems.map((item, idx) => (
-            <li key={idx}>
-              {item.icon} {item.label}
-            </li>
-          ))}
-        </ul>
+      {/* Header copied from MainApp */}
+      <header className="header">
+        <div className="header-left">
+          <Link to="/" className="logo-link">
+            <img src={logo} alt="EchoFace Logo" className="logo" />
+          </Link>
+        </div>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          <LogOut size={20} className="icon" /> Logout
-        </button>
-      </aside>
+        <nav className="nav">
+          <ul>
+            <li><a href="/#about">About</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#contact">Contact</a></li>
+            {user && <li><Link to="/user">Meeting Room</Link></li>}
+          </ul>
+        </nav>
 
-      {/* Main Content */}
-      <main className="main">
-        <h1>Welcome, {username}</h1>
+        <div className="header-right">
+          <button onClick={handleLogout} className="btn outline">Logout</button>
+        </div>
+      </header>
 
-        <section>
-          <h2 className="section-title">System Overview</h2>
-          <div className="stats-container">
-            {stats.map((card, idx) => (
-              <div key={idx} className="stat-card">
-                <span className="stat-icon">{card.icon}</span> {card.label}
-              </div>
+      <div className="admin-body">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <h2>Admin Panel</h2>
+          <ul>
+            {menuItems.map((item, idx) => (
+              <li key={idx}>
+                {item.icon} {item.label}
+              </li>
             ))}
-          </div>
-        </section>
+          </ul>
 
-        <section>
-          <h2 className="section-title">Recent Logs</h2>
-          <table className="logs-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>User</th>
-                <th>Confidence</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log, idx) => (
-                <tr key={idx}>
-                  <td>{log.time}</td>
-                  <td>{log.user}</td>
-                  <td>{log.confidence}</td>
-                  <td style={{ color: log.color, fontWeight: '600' }}>{log.status}</td>
-                </tr>
+          <button className="logout-btn" onClick={handleLogout}>
+            <LogOut size={20} className="icon" /> Logout
+          </button>
+        </aside>
+
+        {/* Main Content */}
+        <main className="main">
+          <h1>Welcome, {username}</h1>
+
+          <section>
+            <h2 className="section-title">System Overview</h2>
+            <div className="stats-container">
+              {stats.map((card, idx) => (
+                <div key={idx} className="stat-card">
+                  <span className="stat-icon">{card.icon}</span> {card.label}
+                </div>
               ))}
-            </tbody>
-          </table>
-        </section>
-      </main>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="section-title">Recent Logs</h2>
+            <table className="logs-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Confidence</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log, idx) => (
+                  <tr key={idx}>
+                    <td>{log.time}</td>
+                    <td>{log.user}</td>
+                    <td>{log.confidence}</td>
+                    <td style={{ color: log.color, fontWeight: '600' }}>{log.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        </main>
+      </div>
     </div>
   );
 };

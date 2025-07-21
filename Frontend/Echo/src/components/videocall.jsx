@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate,useParams, useLocation } from 'react-router-dom';
+import Peer from "simple-peer";
+
+
 
 const REACTIONS = ['👏', '❤️', '🙂', '✋', '👍', '🎉'];
 
@@ -8,7 +11,8 @@ const VideoCall = () => {
   const location = useLocation();
   const localVideoRef = useRef(null);
   const emojiPanelRef = useRef(null);
-
+  const { roomId } = useParams();
+  const ws = useRef(null);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
   const [sharingScreen, setSharingScreen] = useState(false);
@@ -18,7 +22,11 @@ const VideoCall = () => {
   const [inputMsg, setInputMsg] = useState('');
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [showEmojiPanel, setShowEmojiPanel] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+  const [remoteStreams, setRemoteStreams] = useState({});
+  const [peers, setPeers] = useState([]);
 
+  // const [roomNumber, setRoomNumber] = useState('');
   // Generate a secure random room ID with uppercase alphabets and digits
   const generateRoomId = (length = 8) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -33,22 +41,165 @@ const VideoCall = () => {
   const purpose = location.state?.purpose || 'Meeting';
 
   // Generate room number once
-  const [roomNumber] = useState(`Room-${generateRoomId()}`);
+  const [roomNumber, setRoomNumber] = useState(`Room-${generateRoomId()}`);
+  // useEffect(() => {
+  //   const creatorFlag = location.state?.isCreator ?? false;
+  //   setIsCreator(creatorFlag);
+
+  //   // Case 1: Use roomId from URL
+  //   if (roomId) {
+  //     setRoomNumber(`Room-${roomId}`);
+  //     return;
+  //   }
+
+  //   // Case 2: Creator with custom roomId passed in state (e.g. from input page)
+  //   const navRoomId = location.state?.roomId;
+  //   if (creatorFlag && navRoomId) {
+  //     setRoomNumber(`Room-${navRoomId}`);
+  //     navigate(`/call/${navRoomId}`, {
+  //       replace: true,
+  //       state: { isCreator: true, roomId: navRoomId },
+  //     });
+  //     return;
+  //   }
+
+  //   // Case 3: Creator without any roomId – generate a new one
+  //   if (creatorFlag && !roomId && !navRoomId) {
+  //     const generatedId = generateRoomId();
+  //     setRoomNumber(`Room-${generatedId}`);
+  //     navigate(`/call/${generatedId}`, {
+  //       replace: true,
+  //       state: { isCreator: true, roomId: generatedId },
+  //     });
+  //   }
+  // }, [location.state, roomId, navigate]);
+  useEffect(() => {
+    const navRoomId = location.state?.roomId;
+    const creatorFlag = location.state?.isCreator ?? false;
+    setIsCreator(creatorFlag);
+
+    if (roomId) {
+      // Use the roomId from the URL directly
+      setRoomNumber(`Room-${roomId}`);
+      return;
+    }
+
+    if (navRoomId) {
+      // Navigate to the roomId passed from navigation
+      setRoomNumber(`Room-${navRoomId}`);
+      navigate(`/call/${navRoomId}`, {
+        replace: true,
+        state: { isCreator: creatorFlag, roomId: navRoomId }
+      });
+      return;
+    }
+
+    // Fallback only if no room ID is available at all
+    const generatedId = generateRoomId();
+    setRoomNumber(`Room-${generatedId}`);
+    navigate(`/call/${generatedId}`, {
+      replace: true,
+      state: { isCreator: creatorFlag, roomId: generatedId }
+    });
+  }, [roomId, location.state, navigate]);
+
+
 
   useEffect(() => {
+    if (!stream || !roomId) return;
+
+    const socket = new WebSocket(`ws://localhost:8000/ws/call/${roomId}/`);
+    ws.current = socket;
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ action: "join" }));
+      setTimeout(() => {
+        socket.send(JSON.stringify({ action: "ready" }));
+      }, 500);
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      switch (data.action) {
+        case "user-joined":
+      // Show a notification or toast
+        setMessages(prev => [...prev, { text: `${data.peer_id} joined the call`, from: 'System' }]);
+        break;
+
+        case "new-peer":
+        case "initial-peer": {
+          // Safely add a new peer
+          setPeers(prevPeers => {
+            if (!prevPeers.find(p => p.userId === data.peer_id)) {
+              const peer = createPeer(data.peer_id, true);
+              return [...prevPeers, { peer, userId: data.peer_id }];
+            }
+            return prevPeers;
+          });
+          break;
+        }
+
+        case "offer": {
+          const peer = createPeer(data.from, false);
+          peer.signal(data.signal);
+          setPeers(prev => [...prev, { peer, userId: data.from }]);
+          break;
+        }
+
+        case "answer": {
+          setPeers(prev =>
+            prev.map(p =>
+              p.userId === data.from ? { ...p, peer: Object.assign(p.peer, { signal: data.signal }) } : p
+            )
+          );
+          break;
+        }
+
+        case "candidate": {
+          const item = peers.find(p => p.userId === data.from);
+          if (item) item.peer.signal(data.candidate);
+          break;
+        }
+
+        case "user-left": {
+          setPeers(prev => {
+            const leavingPeer = prev.find(p => p.userId === data.peer_id);
+            if (leavingPeer) leavingPeer.peer.destroy();
+            return prev.filter(p => p.userId !== data.peer_id);
+          });
+          break;
+        }
+
+        default:
+          console.warn("Unknown socket action:", data.action);
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [stream, roomId]); // roomId should be in deps too!
+
+
+
+  useEffect(() => {
+    let activeStream;
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((mediaStream) => {
       setStream(mediaStream);
+      activeStream = mediaStream;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = mediaStream;
       }
     });
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
+
 
   // Close emoji panel on outside click
   useEffect(() => {
@@ -116,7 +267,7 @@ const VideoCall = () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
-    navigate('/');
+    navigate('/user');
   };
 
   const sendMessage = () => {
@@ -125,6 +276,57 @@ const VideoCall = () => {
       setInputMsg('');
     }
   };
+
+  const createPeer = (peerId, initiator) => {
+    const peer = new Peer({
+      initiator,
+      trickle: false,
+      stream,
+    });
+
+    peer.on('signal', signal => {
+      ws.current.send(JSON.stringify({
+        action: initiator ? 'offer' : 'answer',
+        target: peerId,
+        signal,
+      }));
+    });
+    peer.on("stream", (remoteStream) => {
+      console.log("Received stream from", peerId);
+      const videoRef = remoteVideoRefs.current[peerId];
+
+      if (videoRef) {
+        videoRef.srcObject = remoteStream;
+      }
+    });
+
+    return peer;
+  };
+
+  const addPeer = (incomingSignal, callerId, stream) => {
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream,
+    });
+
+    peer.on("signal", (signal) => {
+      sendSignal("returning-signal", callerId, signal);
+    });
+
+    // 👇 Key logic to attach remote stream to video
+    peer.on("stream", (remoteStream) => {
+      console.log("Received stream from", callerId);
+      const videoRef = remoteVideoRefs.current[callerId];
+      if (videoRef) {
+        videoRef.srcObject = remoteStream;
+      }
+    });
+
+    peer.signal(incomingSignal);
+    return peer;
+  };
+
 
   const handleEmojiSelect = (emoji) => {
     const id = Date.now();
@@ -176,6 +378,21 @@ const VideoCall = () => {
         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 60px rgba(26, 115, 232, 0.5)'}
         onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 40px rgba(26, 115, 232, 0.25)'}
       />
+
+      {peers.map(({ userId }) => (
+        <video
+          key={userId}
+          autoPlay
+          playsInline
+          ref={(el) => {
+            if (el) {
+              remoteVideoRefs.current[userId] = el;
+            }
+          }}
+          style={{ width: "300px", margin: "10px", border: "2px solid #ccc" }}
+        />
+      ))}
+
 
       {/* Floating emojis */}
       {floatingEmojis.map(({ id, emoji }) => (
@@ -670,5 +887,6 @@ const styles = {
     transition: 'background-color 0.3s',
   },
 };
+
 
 export default VideoCall;

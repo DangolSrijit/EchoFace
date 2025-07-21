@@ -10,46 +10,58 @@ const PreCallSettings = () => {
   const [micOn, setMicOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   const [stream, setStream] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
 
   const videoRef = useRef();
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((mediaStream) => {
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      mediaStream.getAudioTracks().forEach(track => {
-        track.enabled = micOn;
+    let activeStream;
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((mediaStream) => {
+        activeStream = mediaStream;
+        setStream(mediaStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+
+        mediaStream.getAudioTracks().forEach((track) => {
+          track.enabled = micOn;
+        });
+
+        mediaStream.getVideoTracks().forEach((track) => {
+          track.enabled = videoOn;
+        });
+      })
+      .catch((err) => {
+        console.error("Error accessing media devices:", err);
+        setCameraError("Camera or microphone access was denied. Please allow permission and refresh the page.");
       });
-      mediaStream.getVideoTracks().forEach(track => {
-        track.enabled = videoOn;
-      });
-    });
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (activeStream) {
+        activeStream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [micOn, videoOn]);
 
   const toggleMic = () => {
     if (stream) {
-      stream.getAudioTracks().forEach(track => {
+      stream.getAudioTracks().forEach((track) => {
         track.enabled = !micOn;
       });
     }
-    setMicOn(prev => !prev);
+    setMicOn((prev) => !prev);
   };
 
   const toggleVideo = () => {
     if (stream) {
-      stream.getVideoTracks().forEach(track => {
+      stream.getVideoTracks().forEach((track) => {
         track.enabled = !videoOn;
       });
     }
-    setVideoOn(prev => !prev);
+    setVideoOn((prev) => !prev);
   };
 
   const handleStartCall = () => {
@@ -61,10 +73,7 @@ const PreCallSettings = () => {
   return (
     <div style={styles.page}>
       <main style={styles.card}>
-        <div style={styles.progressBarContainer}>
-          <div style={{ ...styles.progressBar, width: '66%' }} />
-          <span style={styles.progressText}>Step 2 of 3</span>
-        </div>
+        {cameraError && <p style={styles.error}>{cameraError}</p>}
 
         <h2 style={styles.title}>Prepare Your Settings</h2>
         <p style={styles.purposeText}>
@@ -83,8 +92,8 @@ const PreCallSettings = () => {
         <div style={styles.buttonsRow}>
           <button
             onClick={toggleMic}
-            style={{ 
-              ...styles.toggleBtn, 
+            style={{
+              ...styles.toggleBtn,
               backgroundColor: micOn ? '#1a73e8' : '#d93025',
               boxShadow: micOn ? '0 0 12px #1a73e8' : '0 0 12px #d93025',
               color: 'white',
@@ -98,8 +107,8 @@ const PreCallSettings = () => {
 
           <button
             onClick={toggleVideo}
-            style={{ 
-              ...styles.toggleBtn, 
+            style={{
+              ...styles.toggleBtn,
               backgroundColor: videoOn ? '#1a73e8' : '#d93025',
               boxShadow: videoOn ? '0 0 12px #1a73e8' : '0 0 12px #d93025',
               color: 'white',
@@ -132,7 +141,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',  // Center vertically now that no header/footer
+    justifyContent: 'center',
     padding: '0 1rem 2rem',
   },
   card: {
@@ -145,26 +154,6 @@ const styles = {
     boxSizing: 'border-box',
     textAlign: 'center',
   },
-  progressBarContainer: {
-    position: 'relative',
-    height: '6px',
-    backgroundColor: '#e8eaed',
-    borderRadius: '4px',
-    marginBottom: '1rem',
-  },
-  progressBar: {
-    height: '6px',
-    backgroundColor: '#1a73e8',
-    borderRadius: '4px',
-    transition: 'width 0.3s ease',
-  },
-  progressText: {
-    position: 'absolute',
-    right: 0,
-    top: '12px',
-    fontSize: '0.875rem',
-    color: '#5f6368',
-  },
   title: {
     fontSize: '2rem',
     fontWeight: '700',
@@ -175,6 +164,12 @@ const styles = {
     fontSize: '1rem',
     color: '#3c4043',
     marginBottom: '2rem',
+  },
+  error: {
+    color: '#d93025',
+    fontWeight: 500,
+    marginBottom: '1rem',
+    fontSize: '1rem',
   },
   video: {
     width: '100%',

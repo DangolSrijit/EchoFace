@@ -16,10 +16,10 @@ const AdminPage = () => {
   const username = user?.username || 'Admin';
 
   const menuItems = [
-    { icon: <User size={20} className="icon"/>, label: 'Registered Users' },
-    { icon: <Camera size={20} className="icon"/>, label: 'Face Recognition Logs' },
-    { icon: <Mic size={20} className="icon"/>, label: 'Voice Detection Logs' },
-    { icon: <Settings size={20} className="icon"/>, label: 'System Settings' },
+    { icon: <User size={20} className="icon" />, label: 'Registered Users' },
+    { icon: <Camera size={20} className="icon" />, label: 'Face Recognition Logs' },
+    { icon: <Mic size={20} className="icon" />, label: 'Voice Detection Logs' },
+    { icon: <Settings size={20} className="icon" />, label: 'System Settings' },
   ];
 
   const stats = [
@@ -54,7 +54,13 @@ const AdminPage = () => {
         </nav>
 
         <div className="header-right">
-          <button onClick={handleLogout} className="btn outline">Logout</button>
+          <button
+            onClick={handleLogout}
+            className="btn outline"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <LogOut size={18} /> Logout
+          </button>
         </div>
       </header>
 
@@ -69,10 +75,6 @@ const AdminPage = () => {
               </li>
             ))}
           </ul>
-
-          <button className="logout-btn" onClick={handleLogout}>
-            <LogOut size={20} className="icon" /> Logout
-          </button>
         </aside>
 
         {/* Main Content */}

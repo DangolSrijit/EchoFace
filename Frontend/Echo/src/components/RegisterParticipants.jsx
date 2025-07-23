@@ -320,10 +320,22 @@ const Register = () => {
         setNicImage(e.target.files[0]);
     };
 
-    const handleFaceRegister = () => {
-        alert("Face registration feature coming soon!");
-        // Future logic for face capture/integration here
+    const handleFaceRegister = async () => {
+        const name = prompt("Enter your name for face registration:");
+        if (!name) {
+            alert("Name is required for face registration.");
+            return;
+        }
+
+        try {
+            const response = await axios.post('http://localhost:8000/capture_faces/', { name }); // Adjust if needed
+            alert(response.data.message);
+        } catch (error) {
+            console.error("Face registration error:", error);
+            alert("An error occurred during face registration.");
+        }
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();

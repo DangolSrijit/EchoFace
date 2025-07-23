@@ -364,7 +364,7 @@ def gen_frames():
                         "face_alerts",
                         {
                             "type": "send_alert",
-                            "message": "⚠️ Unrecognized face detected!"
+                            "message": " Unrecognized face detected"
                         }
                     )
                     unknown_face_alert_sent = True
@@ -384,7 +384,7 @@ def gen_frames():
                     "face_alerts",
                     {
                         "type": "send_alert",
-                        "message": "⚠️ No face detected for over 4 seconds!"
+                        "message": " No face detected for over 4 seconds"
                     }
                 )
                 face_missing_alert_sent = True

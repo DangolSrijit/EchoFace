@@ -10,7 +10,7 @@ from .serializers import (
 ) # Make sure this matches your serializer name
 from rest_framework_simplejwt.tokens import RefreshToken
 # from .tokens import get_tokens_for_user  # You need to define this (see below)
-
+from api.models import User, Room
 
 # Create your views here.
 
@@ -416,3 +416,8 @@ def evaluate_model_view(request):
         'confusion_matrix_image': result['confusion_matrix_image']
     })
 
+def create_room(request):
+    import uuid
+    room_id = str(uuid.uuid4())
+    Room.objects.create(id=room_id)
+    return Response({'room_id': room_id})

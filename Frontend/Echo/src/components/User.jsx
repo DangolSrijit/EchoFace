@@ -17,9 +17,14 @@ function User() {
     e.preventDefault();
     const roomId = e.target.roomId.value.trim();
     if (roomId) {
-      navigate(`/call/${roomId}`);
+      navigate(`/call/${roomId}`, {
+        state: {
+          isCreator: false,
+          roomId: roomId
+        }
+      });
     }
-  };
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('user');

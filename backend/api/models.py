@@ -73,3 +73,9 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.student_name} - {self.date} {self.timestamp}"
+
+
+class Room(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)  # same format as room_id
+    created_at = models.DateTimeField(auto_now_add=True)
+    # optionally add fields like 'is_active', 'creator', etc.

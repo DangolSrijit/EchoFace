@@ -182,6 +182,7 @@ def get_faces_data(request):
 import cv2
 import pickle
 import numpy as np
+import time
 from sklearn.neighbors import KNeighborsClassifier
 from datetime import date
 from .models import Attendance
@@ -253,12 +254,55 @@ def recognize_faces(request):
 
 
 
+# from django.http import StreamingHttpResponse
+
+# def gen_frames():
+#     facedetect = cv2.CascadeClassifier('./data/haarcascade_frontalface_default.xml')
+#     video = cv2.VideoCapture(0)
+
+#     with open('./data/names.pkl', 'rb') as f:
+#         names = pickle.load(f)
+#     with open('./data/faces_data.pkl', 'rb') as f:
+#         faces = pickle.load(f)
+
+#     knn = KNeighborsClassifier(n_neighbors=5)
+#     knn.fit(faces, names)
+
+#     while True:
+#         success, frame = video.read()
+#         if not success:
+#             break
+#         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#         face_rects = facedetect.detectMultiScale(gray, 1.3, 5)
+
+#         for (x, y, w, h) in face_rects:
+#             crop_img = frame[y:y+h, x:x+w, :]
+#             resized_img = cv2.resize(crop_img, (50, 50)).flatten().reshape(1, -1)
+#             output = knn.predict(resized_img)
+#             name = output[0]
+#             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+#             cv2.putText(frame, name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+
+#         ret, buffer = cv2.imencode('.jpg', frame)
+#         frame = buffer.tobytes()
+
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+#     video.release()
+
 from django.http import StreamingHttpResponse
 
+#for websocket alerts
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 def gen_frames():
+    # Initialize face detector and video capture
     facedetect = cv2.CascadeClassifier('./data/haarcascade_frontalface_default.xml')
     video = cv2.VideoCapture(0)
 
+    # Load known faces data and labels
     with open('./data/names.pkl', 'rb') as f:
         names = pickle.load(f)
     with open('./data/faces_data.pkl', 'rb') as f:
@@ -267,6 +311,13 @@ def gen_frames():
     knn = KNeighborsClassifier(n_neighbors=5)
     knn.fit(faces, names)
 
+     # For no face detection alert
+    last_face_time = time.time()
+    face_missing_alert_sent = False
+    # For unknown face alert
+    unknown_face_alert_sent = False
+
+
     while True:
         success, frame = video.read()
         if not success:
@@ -274,13 +325,69 @@ def gen_frames():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         face_rects = facedetect.detectMultiScale(gray, 1.3, 5)
 
-        for (x, y, w, h) in face_rects:
-            crop_img = frame[y:y+h, x:x+w, :]
-            resized_img = cv2.resize(crop_img, (50, 50)).flatten().reshape(1, -1)
-            output = knn.predict(resized_img)
-            name = output[0]
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            cv2.putText(frame, name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+        if len(face_rects) > 0:
+            # Update timestamp since face detected
+            last_face_time = time.time()
+            face_missing_alert_sent = False  # Reset if face appears
+
+            for (x, y, w, h) in face_rects:
+                crop_img = frame[y:y+h, x:x+w, :]
+                resized_img = cv2.resize(crop_img, (50, 50)).flatten().reshape(1, -1)
+
+                # try:
+                #     output = knn.predict(resized_img)
+                #     name = output[0]
+                #     if name not in names:
+                #         if not unknown_face_alert_sent:
+                #             channel_layer = get_channel_layer()
+                #             async_to_sync(channel_layer.group_send)(
+                #                 "face_alerts",
+                #                 {
+                #                     "type": "send_alert",
+                #                     "message": f"Unknown face detected: {name}"
+                #                 }
+                #             )
+                #             unknown_face_alert_sent = True
+                #     else:
+                #         unknown_face_alert_sent = False  # Reset if known face detected
+
+                try:
+                    output = knn.predict(resized_img)
+                    name = output[0]
+                except Exception:
+                    name = "Unknown"
+
+                # If unknown face detected, send alert
+                if name == "Unknown" and not unknown_face_alert_sent:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        "face_alerts",
+                        {
+                            "type": "send_alert",
+                            "message": "⚠️ Unrecognized face detected!"
+                        }
+                    )
+                    unknown_face_alert_sent = True
+                elif name != "Unknown":
+                    unknown_face_alert_sent = False  # Reset if recognized face appears
+
+                # Draw the detection on the frame (red for unknown, green for recognized)
+                color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
+                cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+                cv2.putText(frame, name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+
+        # else:
+        #     # No face detected – check if >4 seconds have passed
+        #     if time.time() - last_face_time > 4 and not face_missing_alert_sent:
+        #         channel_layer = get_channel_layer()
+        #         async_to_sync(channel_layer.group_send)(
+        #             "face_alerts",
+        #             {
+        #                 "type": "send_alert",
+        #                 "message": "⚠️ No face detected for over 4 seconds!"
+        #             }
+        #         )
+        #         face_missing_alert_sent = True
 
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
@@ -289,6 +396,7 @@ def gen_frames():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     video.release()
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])

@@ -376,18 +376,18 @@ def gen_frames():
                 cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
                 cv2.putText(frame, name, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
-        # else:
-        #     # No face detected – check if >4 seconds have passed
-        #     if time.time() - last_face_time > 4 and not face_missing_alert_sent:
-        #         channel_layer = get_channel_layer()
-        #         async_to_sync(channel_layer.group_send)(
-        #             "face_alerts",
-        #             {
-        #                 "type": "send_alert",
-        #                 "message": "⚠️ No face detected for over 4 seconds!"
-        #             }
-        #         )
-        #         face_missing_alert_sent = True
+        else:
+            # No face detected – check if >4 seconds have passed
+            if time.time() - last_face_time > 4 and not face_missing_alert_sent:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    "face_alerts",
+                    {
+                        "type": "send_alert",
+                        "message": "⚠️ No face detected for over 4 seconds!"
+                    }
+                )
+                face_missing_alert_sent = True
 
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()

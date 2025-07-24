@@ -378,6 +378,7 @@ def gen_frames():
                 # else:     #changes for single api
                 #     unknown_face_alert_sent = False
                     today = date.today()
+                    # Check if the name is already recognized today
                     # local_timestamp = dj_timezone.localtime(dj_timezone.now())  # Nepal local time
                     if name not in recognized_today:
                         from .models import Attendance  # avoid circular import if needed

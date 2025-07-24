@@ -13,7 +13,10 @@ import PrivateRoute from './PrivateRoute';
 import SelectPurpose from './SelectPurpose';
 import PreCallSettings from './PreCallSettings'; 
 import MainAfterCall from './MainAfterCall';
-import LearnMore from './LearnMore'; // ✅ New import
+import LearnMore from './LearnMore'; 
+import RegisteredUser from './RegisteredUsers';
+import AttendanceList from './AttendanceList';
+import RoomList from './RoomList';
 
 function App() {
   return (
@@ -67,7 +70,17 @@ function App() {
           </PrivateRoute>
         } 
       />
+
+      
+        <Route path="/admin/face-logs" element={<div>Face Recognition Logs</div>} />
+        <Route path="/admin/voice-logs" element={<div>Voice Detection Logs</div>} />
+        <Route path="/admin/settings" element={<div>System Settings</div>} />
+        <Route path="/admin/users" element={<RegisteredUser />} />
+        {/* Add other components like /face-logs etc. if needed */}
+      
       <Route path="/main-after-call" element={<MainAfterCall />} />
+      <Route path="/admin/attendance" element={<AttendanceList />} />
+      <Route path="/admin/rooms" element={<RoomList />} />
     </Routes>
   );
 }

@@ -7,9 +7,16 @@ from .views import (
     capture_faces,  
     get_faces_data,
     recognize_faces,
+    get_user_count,
     video_feed,
     evaluate_model_view,
-    create_room,  # Import the new view for room creation
+    create_room, 
+    registered_users,
+    delete_user, 
+    get_attendance,
+    get_rooms,
+    total_recognized_faces,
+    get_total_rooms,
 )  # Import your view function
 
 from rest_framework_simplejwt.views import (
@@ -29,4 +36,12 @@ urlpatterns = [
     path('video_feed/', video_feed, name='video_feed'),  # URL for video feed
     path('evaluate_model/', evaluate_model_view, name='evaluate_model'),  # URL for model evaluation
     path('api/create-room/', create_room, name='create_room'),
+    path('api/user-count/', get_user_count),
+    path('api/registered-users/', registered_users, name='registered-users'),
+    path('api/delete-user/<int:pk>/', delete_user, name='delete_user'),
+    path('attendance/', get_attendance, name='get_attendance'),
+    path('rooms/', get_rooms, name='get_rooms'),
+    path('api/total-recognized-faces/', total_recognized_faces, name='total_recognized_faces'),
+    path('api/total-rooms/', get_total_rooms, name='total_rooms'),
+
  ]

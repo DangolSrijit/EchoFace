@@ -107,7 +107,7 @@
 }
 .register-submitFace {
      width: 100%;
-    background-color: rgb(41, 50, 60);
+    background-color: #1558c1;
     color: white;
     border: 0;
     font-size: 1.1rem;
@@ -125,7 +125,7 @@
 
 .register-submit {
     width: 100%;
-    background-color: rgb(41, 50, 60);
+    background-color: #1558c1;
     color: white;
     border: 0;
     font-size: 1.1rem;

@@ -185,6 +185,7 @@ import numpy as np
 import time
 from sklearn.neighbors import KNeighborsClassifier
 from datetime import date
+# import django.utils.timezone as dj_timezone
 from .models import Attendance
 from .serializers import AttendanceSerializer
 @api_view(["GET"])
@@ -242,6 +243,7 @@ def recognize_faces(request):
 
     for name in recognized:
         if not Attendance.objects.filter(student_name=name, date=today).exists():
+            # local_timestamp = localtime(now())  # Nepal local time
             entry = Attendance.objects.create(student_name=name, date=today)
             entries.append(entry)
 
@@ -311,6 +313,8 @@ def gen_frames():
     knn = KNeighborsClassifier(n_neighbors=5)
     knn.fit(faces, names)
 
+    recognized_today = set()  # To track recognized faces today
+
      # For no face detection alert
     last_face_time = time.time()
     face_missing_alert_sent = False
@@ -371,6 +375,17 @@ def gen_frames():
                 elif name != "Unknown":
                     unknown_face_alert_sent = False  # Reset if recognized face appears
 
+                # else:     #changes for single api
+                #     unknown_face_alert_sent = False
+                    today = date.today()
+                    # local_timestamp = dj_timezone.localtime(dj_timezone.now())  # Nepal local time
+                    if name not in recognized_today:
+                        from .models import Attendance  # avoid circular import if needed
+                        if not Attendance.objects.filter(student_name=name, date=today).exists():
+                            # local_timestamp = dj_timezone.localtime(dj_timezone.now())  # Nepal local time
+                            Attendance.objects.create(student_name=name, date=today)
+                            recognized_today.add(name)
+
                 # Draw the detection on the frame (red for unknown, green for recognized)
                 color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)
                 cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
@@ -390,6 +405,8 @@ def gen_frames():
                 face_missing_alert_sent = True
 
         ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            continue
         frame = buffer.tobytes()
 
         yield (b'--frame\r\n'

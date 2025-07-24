@@ -69,7 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Attendance(models.Model):
     student_name = models.CharField(max_length=100)
     timestamp = models.DateTimeField(auto_now_add=True)
-    date = models.DateField( default=timezone.now)
+    date = models.DateField(default=timezone.now)
 
     def __str__(self):
         return f"{self.student_name} - {self.date} {self.timestamp}"

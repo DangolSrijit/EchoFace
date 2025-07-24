@@ -6,11 +6,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .serializers import (
     LoginSerializer, 
-    RegisterSerializer
+    RegisterSerializer,
+    RegisteredUserSerializer,
+    RoomSerializer,
+    AttendanceSerializer
 ) # Make sure this matches your serializer name
 from rest_framework_simplejwt.tokens import RefreshToken
 # from .tokens import get_tokens_for_user  # You need to define this (see below)
-from api.models import User, Room
+from api.models import User, Room, Attendance
 
 # Create your views here.
 
@@ -82,7 +85,52 @@ def logout_view(request):
     except Exception :
         return Response({"msg": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  
+def get_user_count(request):
+    total_users = User.objects.filter(is_active=True).count()  # count only active users
+    return Response({'total_users': total_users})
 
+@api_view(['GET'])
+def registered_users(request):
+    users = User.objects.all()
+    serializer = RegisteredUserSerializer(users, many=True)
+    return Response(serializer.data)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_user(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+        user.delete()
+        return Response({'detail': 'User deleted'}, status=status.HTTP_204_NO_CONTENT)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_attendance(request):
+    attendance = Attendance.objects.all().order_by('-timestamp')
+    serializer = AttendanceSerializer(attendance, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_rooms(request):
+    rooms = Room.objects.all().order_by('-created_at')
+    serializer = RoomSerializer(rooms, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+from django.http import JsonResponse
+
+def total_recognized_faces(request):
+    count = Attendance.objects.count()
+    return JsonResponse({'total_recognized_faces': count})
+
+def get_total_rooms(request):
+    total = Room.objects.count()
+    return JsonResponse({"total_rooms": total})
 
 #face capturing APIs
 import cv2

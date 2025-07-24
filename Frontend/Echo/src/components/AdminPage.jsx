@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, Camera, Mic, Settings } from 'lucide-react';
-import logo from '../img/logo.png'; // same logo as MainApp
+import { LogOut, User, ListChecks, DoorOpen, Settings } from 'lucide-react';
+import axios from 'axios';
+import logo from '../img/logo.png';
 import './AdminPage.css';
 
 const AdminPage = () => {
   const navigate = useNavigate();
+  const [userCount, setUserCount] = useState(0);
+  const [recognizedTotal, setRecognizedTotal] = useState(0);
+  const [roomCount, setRoomCount] = useState(0);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -15,19 +19,67 @@ const AdminPage = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   const username = user?.username || 'Admin';
 
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    const accessToken = storedUser?.tokens?.access;
+
+    if (!accessToken) {
+      console.error("Access token not found. User might not be logged in.");
+      return;
+    }
+
+    axios
+      .get('http://localhost:8000/api/user-count/', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+      .then((res) => {
+        setUserCount(res.data.total_users);
+      })
+      .catch((err) => {
+        console.error('Error fetching user count:', err.response?.data || err.message);
+      });
+
+     axios
+      .get('http://localhost:8000/api/total-recognized-faces/', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => setRecognizedTotal(res.data.total_recognized_faces))
+      .catch((err) => console.error('Error fetching total recognized faces:', err));
+
+    axios
+      .get('http://localhost:8000/api/total-rooms/', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => setRoomCount(res.data.total_rooms))
+      .catch((err) => console.error('Error fetching total room count:', err));
+  }, []);
+
+   
   const menuItems = [
-    { icon: <User size={20} className="icon" />, label: 'Registered Users' },
-    { icon: <Camera size={20} className="icon" />, label: 'Face Recognition Logs' },
-    { icon: <Mic size={20} className="icon" />, label: 'Voice Detection Logs' },
-    { icon: <Settings size={20} className="icon" />, label: 'System Settings' },
+    { icon: <User size={20} className="icon" />, label: 'Registered Users', to: '/admin/users' },
+    {
+    icon: <ListChecks size={20} className="icon" style={{ color: '#1558c1' }} />,
+    label: 'Recognized List',
+    to: '/admin/attendance',
+  },
+  {
+    icon: <DoorOpen size={20} className="icon" style={{ color: '#1558c1' }} />,
+    label: 'Room List',
+    to: '/admin/rooms',
+  },
+    { icon: <Settings size={20} className="icon" />, label: 'System Settings', to: '/admin/settings' },
   ];
 
+
   const stats = [
-    { icon: '👤', label: 'Total Users: 132' },
-    { icon: '📸', label: 'Face Matches Today: 45' },
-    { icon: '🎤', label: 'Voice Matches: 28' },
-    { icon: '❌', label: 'Unrecognized Attempts: 5' },
+    { icon: '👤', label: `Total Users: ${userCount}` },
+    { icon: '✅', label: `Total Recognized Faces: ${recognizedTotal}` },
+    { icon: '🚪', label: `Rooms Created: ${roomCount}` },
+    { icon: '⚠️', label: 'Unrecognized Attempts: 5' },
   ];
+
 
   const logs = [
     { time: '10:05 AM', user: 'John Doe', confidence: '97%', status: 'Matched', color: '#34a853' },
@@ -36,7 +88,7 @@ const AdminPage = () => {
 
   return (
     <div className="admin-wrapper">
-      {/* Header copied from MainApp */}
+      {/* Header */}
       <header className="header">
         <div className="header-left">
           <Link to="/" className="logo-link">
@@ -71,10 +123,13 @@ const AdminPage = () => {
           <ul>
             {menuItems.map((item, idx) => (
               <li key={idx}>
-                {item.icon} {item.label}
+                <Link to={item.to} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {item.icon} {item.label}
+                </Link>
               </li>
             ))}
           </ul>
+
         </aside>
 
         {/* Main Content */}

@@ -17,6 +17,8 @@ from .views import (
     get_rooms,
     total_recognized_faces,
     get_total_rooms,
+    recent_logs,
+    get_csrf_cookie,
 )  # Import your view function
 
 from rest_framework_simplejwt.views import (
@@ -43,5 +45,6 @@ urlpatterns = [
     path('rooms/', get_rooms, name='get_rooms'),
     path('api/total-recognized-faces/', total_recognized_faces, name='total_recognized_faces'),
     path('api/total-rooms/', get_total_rooms, name='total_rooms'),
-
+    path('api/recent-logs/', recent_logs),
+    path('api/get-csrf-cookie/', get_csrf_cookie, name='get_csrf_cookie'),
  ]

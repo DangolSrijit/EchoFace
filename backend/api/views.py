@@ -14,6 +14,8 @@ from .serializers import (
 from rest_framework_simplejwt.tokens import RefreshToken
 # from .tokens import get_tokens_for_user  # You need to define this (see below)
 from api.models import User, Room, Attendance
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.db import IntegrityError
 
 # Create your views here.
 
@@ -131,6 +133,13 @@ def total_recognized_faces(request):
 def get_total_rooms(request):
     total = Room.objects.count()
     return JsonResponse({"total_rooms": total})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recent_logs(request):
+    logs = Attendance.objects.order_by('-timestamp')[:10]  # latest 10
+    serializer = AttendanceSerializer(logs, many=True)
+    return Response(serializer.data)
 
 #face capturing APIs
 import cv2
@@ -463,9 +472,22 @@ def evaluate_model_view(request):
         'report': result['report'],
         'confusion_matrix_image': result['confusion_matrix_image']
     })
-
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def create_room(request):
-    import uuid
-    room_id = str(uuid.uuid4())
-    Room.objects.create(id=room_id)
-    return Response({'room_id': room_id})
+    room_id = request.data.get("id")
+    if not room_id:
+        return Response({"error": "Room ID is required"}, status=400)
+    try:
+        room = Room.objects.create(id=room_id)
+        print("Room created with ID:", room.id)
+        return Response({"message": "Room created", "id": room.id})
+    except IntegrityError:
+        return Response({"error": "Room with this ID already exists."}, status=400)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@ensure_csrf_cookie
+def get_csrf_cookie(request):
+    return JsonResponse({'detail': 'CSRF cookie set'})

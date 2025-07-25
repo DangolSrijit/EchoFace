@@ -1,10 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate,useParams, useLocation } from 'react-router-dom';
 import Peer from "simple-peer";
+import axios from 'axios';
 
 
 
 const REACTIONS = ['👏', '❤️', '🙂', '✋', '👍', '🎉'];
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 
 const VideoCall = () => {
   const navigate = useNavigate();
@@ -42,45 +58,59 @@ const VideoCall = () => {
 
   // Generate room number once
   const [roomNumber, setRoomNumber] = useState(`Room-${generateRoomId()}`);
-  // useEffect(() => {
-  //   const creatorFlag = location.state?.isCreator ?? false;
-  //   setIsCreator(creatorFlag);
+  
+  const storeRoomInDB = async (roomIdToSave) => {
+    try {
+      console.log("📤 Sending POST to backend with ID:", roomIdToSave);
 
-  //   // Case 1: Use roomId from URL
-  //   if (roomId) {
-  //     setRoomNumber(`Room-${roomId}`);
-  //     return;
-  //   }
+      const accessToken = JSON.parse(localStorage.getItem("user"))?.tokens?.access;
+      const csrfToken = getCookie("csrftoken");
+      console.log("CSRF token:", csrfToken);
 
-  //   // Case 2: Creator with custom roomId passed in state (e.g. from input page)
-  //   const navRoomId = location.state?.roomId;
-  //   if (creatorFlag && navRoomId) {
-  //     setRoomNumber(`Room-${navRoomId}`);
-  //     navigate(`/call/${navRoomId}`, {
-  //       replace: true,
-  //       state: { isCreator: true, roomId: navRoomId },
-  //     });
-  //     return;
-  //   }
+      await axios.post("http://localhost:8000/api/create-room/", 
+        { id: roomIdToSave }, 
+        {
+          withCredentials: true,
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "X-CSRFToken": csrfToken
+          }
+        }
+      );
 
-  //   // Case 3: Creator without any roomId – generate a new one
-  //   if (creatorFlag && !roomId && !navRoomId) {
-  //     const generatedId = generateRoomId();
-  //     setRoomNumber(`Room-${generatedId}`);
-  //     navigate(`/call/${generatedId}`, {
-  //       replace: true,
-  //       state: { isCreator: true, roomId: generatedId },
-  //     });
-  //   }
-  // }, [location.state, roomId, navigate]);
+      console.log("✅ Room ID stored in DB");
+    } catch (err) {
+      if (err.response) {
+        console.error("❌ Backend responded with:", err.response.data);
+      } else {
+        console.error("❌ Network or other error:", err);
+      }
+    }
+  };
+
+
   useEffect(() => {
+
+    fetch('http://localhost:8000/api/get-csrf-cookie/', {
+      credentials: 'include',
+    })
+      .then(() => {
+        console.log('CSRF cookie set');
+      })
+      .catch((err) => {
+        console.error('Failed to get CSRF cookie:', err);
+      });
+
     const navRoomId = location.state?.roomId;
     const creatorFlag = location.state?.isCreator ?? false;
     setIsCreator(creatorFlag);
 
+  
+
     if (roomId) {
       // Use the roomId from the URL directly
       setRoomNumber(`Room-${roomId}`);
+      storeRoomInDB(roomId);
       return;
     }
 
@@ -91,6 +121,7 @@ const VideoCall = () => {
         replace: true,
         state: { isCreator: creatorFlag, roomId: navRoomId }
       });
+      storeRoomInDB(navRoomId);
       return;
     }
 
@@ -101,6 +132,7 @@ const VideoCall = () => {
       replace: true,
       state: { isCreator: creatorFlag, roomId: generatedId }
     });
+    storeRoomInDB(generatedId);
   }, [roomId, location.state, navigate]);
 
 

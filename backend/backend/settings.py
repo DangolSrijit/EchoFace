@@ -14,6 +14,8 @@ from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+from corsheaders.defaults import default_headers
+
 
 # Load environment variables from .env file
 load_dotenv()       
@@ -62,11 +64,19 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "X-CSRFToken",
 ]
 
 AUTH_USER_MODEL = 'api.User'  # Custom user model

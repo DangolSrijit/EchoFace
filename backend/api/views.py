@@ -311,6 +311,8 @@ def gen_frames():
     knn = KNeighborsClassifier(n_neighbors=5)
     knn.fit(faces, names)
 
+    recognized_today = set()  # Track recognized faces for today
+
      # For no face detection alert
     last_face_time = time.time()
     face_missing_alert_sent = False
@@ -370,6 +372,13 @@ def gen_frames():
                     unknown_face_alert_sent = True
                 elif name != "Unknown":
                     unknown_face_alert_sent = False  # Reset if recognized face appears
+
+                    today = date.today()
+                    if name not in recognized_today:
+                        from .models import Attendance  # Lazy import to avoid circular import
+                        if not Attendance.objects.filter(student_name=name, date=today).exists():
+                            Attendance.objects.create(student_name=name, date=today)
+                            recognized_today.add(name)
 
                 # Draw the detection on the frame (red for unknown, green for recognized)
                 color = (0, 255, 0) if name != "Unknown" else (0, 0, 255)

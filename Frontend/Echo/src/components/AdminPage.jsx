@@ -5,11 +5,13 @@ import axios from 'axios';
 import logo from '../img/logo.png';
 import './AdminPage.css';
 
+
 const AdminPage = () => {
   const navigate = useNavigate();
   const [userCount, setUserCount] = useState(0);
   const [recognizedTotal, setRecognizedTotal] = useState(0);
   const [roomCount, setRoomCount] = useState(0);
+  const [records, setRecords] = useState([]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -54,6 +56,16 @@ const AdminPage = () => {
       })
       .then((res) => setRoomCount(res.data.total_rooms))
       .catch((err) => console.error('Error fetching total room count:', err));
+
+    axios.get('http://localhost:8000/api/recent-logs/', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    })
+    .then(res => {
+      setRecords(res.data);
+    })
+    .catch(err => console.error('Error fetching recent logs:', err));
   }, []);
 
    
@@ -69,7 +81,7 @@ const AdminPage = () => {
     label: 'Room List',
     to: '/admin/rooms',
   },
-    { icon: <Settings size={20} className="icon" />, label: 'System Settings', to: '/admin/settings' },
+    // { icon: <Settings size={20} className="icon" />, label: 'System Settings', to: '/admin/settings' },
   ];
 
 
@@ -77,14 +89,14 @@ const AdminPage = () => {
     { icon: '👤', label: `Total Users: ${userCount}` },
     { icon: '✅', label: `Total Recognized Faces: ${recognizedTotal}` },
     { icon: '🚪', label: `Rooms Created: ${roomCount}` },
-    { icon: '⚠️', label: 'Unrecognized Attempts: 5' },
+    // { icon: '⚠️', label: 'Unrecognized Attempts: 5' },
   ];
 
 
-  const logs = [
-    { time: '10:05 AM', user: 'John Doe', confidence: '97%', status: 'Matched', color: '#34a853' },
-    { time: '10:18 AM', user: 'Unknown', confidence: '52%', status: 'Unmatched', color: '#ea4335' },
-  ];
+  // const logs = [
+  //   { time: '10:05 AM', user: 'John Doe', confidence: '97%', status: 'Matched', color: '#34a853' },
+  //   { time: '10:18 AM', user: 'Unknown', confidence: '52%', status: 'Unmatched', color: '#ea4335' },
+  // ];
 
   return (
     <div className="admin-wrapper">
@@ -152,24 +164,26 @@ const AdminPage = () => {
             <table className="logs-table">
               <thead>
                 <tr>
-                  <th>Time</th>
+                  <th>ID</th>
                   <th>User</th>
-                  <th>Confidence</th>
-                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Time Stamp</th>
+                  
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log, idx) => (
-                  <tr key={idx}>
-                    <td>{log.time}</td>
-                    <td>{log.user}</td>
-                    <td>{log.confidence}</td>
-                    <td style={{ color: log.color, fontWeight: '600' }}>{log.status}</td>
+                {records.map((rec, index) => (
+                  <tr key={index}>
+                    <td>{index + 1}</td>
+                    <td>{rec.student_name}</td>
+                    <td>{rec.date}</td>
+                    <td>{new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </section>
+
         </main>
       </div>
     </div>

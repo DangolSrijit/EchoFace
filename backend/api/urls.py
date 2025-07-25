@@ -6,6 +6,7 @@ from .views import (
     logout_view, 
     capture_faces,  
     get_faces_data,
+    delete_face_data,
     recognize_faces,
     get_user_count,
     video_feed,
@@ -34,6 +35,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # URL for token refresh
     path('capture_faces/', capture_faces, name='capture_faces'),  # URL for face capture
     path('get_faces_data/', get_faces_data, name='get_faces_data'),  # URL for getting face data
+    path('delete_face_data/', delete_face_data, name='delete_face_data'),  # URL for deleting face data
     path('recognize_faces/', recognize_faces, name='recognize_faces'),  # URL for face recognition
     path('video_feed/', video_feed, name='video_feed'),  # URL for video feed
     path('evaluate_model/', evaluate_model_view, name='evaluate_model'),  # URL for model evaluation

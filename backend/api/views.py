@@ -393,23 +393,6 @@ def gen_frames():
                 crop_img = frame[y:y+h, x:x+w, :]
                 resized_img = cv2.resize(crop_img, (50, 50)).flatten().reshape(1, -1)
 
-                # try:
-                #     output = knn.predict(resized_img)
-                #     name = output[0]
-                #     if name not in names:
-                #         if not unknown_face_alert_sent:
-                #             channel_layer = get_channel_layer()
-                #             async_to_sync(channel_layer.group_send)(
-                #                 "face_alerts",
-                #                 {
-                #                     "type": "send_alert",
-                #                     "message": f"Unknown face detected: {name}"
-                #                 }
-                #             )
-                #             unknown_face_alert_sent = True
-                #     else:
-                #         unknown_face_alert_sent = False  # Reset if known face detected
-
                 try:
                     output = knn.predict(resized_img)
                     name = output[0]
@@ -500,3 +483,52 @@ def create_room(request):
 @ensure_csrf_cookie
 def get_csrf_cookie(request):
     return JsonResponse({'detail': 'CSRF cookie set'})
+
+from .models import Attendance
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def delete_face_data(request):
+    name_to_delete = request.data.get('name')
+    if not name_to_delete:
+        return Response({"error": "Name is required"}, status=400)
+
+    names_path = './data/names.pkl'
+    faces_path = './data/faces_data.pkl'
+
+    if not (os.path.exists(names_path) and os.path.exists(faces_path)):
+        return Response({"error": "Face data files not found."}, status=404)
+
+    # Load data from pkl files
+    with open(names_path, 'rb') as f:
+        names = pickle.load(f)
+    with open(faces_path, 'rb') as f:
+        faces = pickle.load(f)
+
+    # Check if name exists
+    if name_to_delete not in names:
+        return Response({"error": f"No face data found for '{name_to_delete}'."}, status=404)
+
+    # Filter out entries for the target name
+    filtered_names = []
+    filtered_faces = []
+
+    for i, person_name in enumerate(names):
+        if person_name != name_to_delete:
+            filtered_names.append(person_name)
+            filtered_faces.append(faces[i])
+
+    # Save updated pkl files
+    with open(names_path, 'wb') as f:
+        pickle.dump(filtered_names, f)
+
+    with open(faces_path, 'wb') as f:
+        pickle.dump(np.array(filtered_faces), f)
+
+    # Delete attendance records from the database
+    deleted_count, _ = Attendance.objects.filter(student_name=name_to_delete).delete()
+
+    return Response({
+        "message": f"Deleted face data and {deleted_count} attendance record(s) for '{name_to_delete}'."
+    }, status=200)

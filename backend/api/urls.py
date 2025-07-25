@@ -19,12 +19,15 @@ from .views import (
     get_total_rooms,
     recent_logs,
     get_csrf_cookie,
+    delete_face_data,
 )  # Import your view function
 
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     # TokenObtainPairView,
 )
+from .face_recognition_api import face_recognition_api, reset_face_tracking, face_recognition_status
+
 
 
 urlpatterns = [
@@ -47,4 +50,9 @@ urlpatterns = [
     path('api/total-rooms/', get_total_rooms, name='total_rooms'),
     path('api/recent-logs/', recent_logs),
     path('api/get-csrf-cookie/', get_csrf_cookie, name='get_csrf_cookie'),
+    path('api/face-recognition/', face_recognition_api, name='face_recognition_api'),
+    path('api/face-recognition/reset/', reset_face_tracking, name='reset_face_tracking'),
+    path('api/face-recognition/status/', face_recognition_status, name='face_recognition_status'),
+
+    path('delete_face_data/', delete_face_data, name='delete_face_data'),  # URL for deleting face data
  ]
